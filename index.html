@@ -1354,7 +1354,12 @@ function learnForm(){
   const f=S.lf; if(!f) return "";
   const prodOpts=`<option value="">ทุกรุ่น / ไม่ระบุ</option>`+[...S.prods].sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(p=>`<option value="${esc(p.id)}" ${f.d.prod===p.id?"selected":""}>${esc(p.name)}</option>`).join("");
   const inp=(n,l,ph="",ta=false)=>`<label style="display:grid;gap:3px;font-size:13px;font-weight:600">${l}${ta?`<textarea name="${n}" placeholder="${esc(ph)}" style="font-family:var(--f-body);min-height:70px">${esc(f.d[n]||"")}</textarea>`:`<input name="${n}" placeholder="${esc(ph)}" value="${esc(f.d[n]||"")}">`}</label>`;
-  const body=f.kind==="quiz"?`${inp("q","คำถาม","เช่น ES-9920 ไฟม่วงกระพริบหมายถึงอะไร?",true)}
+  const pasteBox=f.kind==="quiz"&&!f.d.id?`<details class="trouble" ${f.pasteOpen?"open":""} style="margin-bottom:8px"><summary>📋 วางข้อความทั้งก้อน แล้วให้ระบบแยกให้ (ใส่ได้หลายข้อ)</summary><div style="padding:8px 12px;display:grid;gap:6px">
+      <textarea name="paste" placeholder="วางแบบนี้ (จะคั่นด้วยบรรทัดว่างหรือใส่เลขข้อก็ได้)\n\nรุ่น: ES-9920\nคำถาม: ไฟม่วงกระพริบหมายถึงอะไร?\nก. กระดาษหมด\nข. หัวพิมพ์ร้อนเกิน\nค. ไม่มีสัญญาณ WiFi\nง. ฝาปิดไม่สนิท\nเฉลย: ข\nอธิบาย: ปิดเครื่องพัก 5 นาที\n\n2. BC-300 นับเหรียญได้ไหม?\n- ได้\n- ไม่ได้ *\nเหตุผล: นับได้เฉพาะธนบัตร" style="font-family:var(--f-mono);font-size:12.5px;min-height:150px">${esc(f.paste||"")}</textarea>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button type="button" class="btn small primary" data-lf-parse>แยกข้อความ</button><span class="soft" style="font-size:12.5px">รองรับ: รุ่น/หมวด/คำถาม/ก-ง หรือ A-D หรือ 1-4 หรือ - /เฉลย/อธิบาย/รูป · ใส่ * ท้ายตัวเลือกที่ถูกก็ได้</span></div>
+      ${f.bulk?`<div class="sec" style="margin:0"><h3>แยกได้ ${f.bulk.length} ข้อ</h3><div style="padding:8px 12px;display:grid;gap:6px;font-size:13.5px;max-height:220px;overflow:auto">${f.bulk.map((b,i)=>`<div style="display:flex;gap:8px;align-items:flex-start"><span style="flex:1;min-width:0"><b>${i+1}.</b> ${esc(b.q)} <span class="soft">· ${b.prod?esc(prodName(b.prod)):"ทุกรุ่น"} · เฉลย ${esc(b.answer)}: ${esc(b[{"ก":"a","ข":"b","ค":"c","ง":"d"}[b.answer]]||"")}${b.warn?` · <span style="color:var(--danger)">${esc(b.warn)}</span>`:""}</span></span><button type="button" class="btn small" data-lf-bulk-rm="${i}">ลบ</button></div>`).join("")}</div>
+        <div style="padding:0 12px 10px;display:flex;gap:6px;align-items:center"><button type="button" class="btn small primary" data-lf-bulk-save ${f.saving?"disabled":""}>${f.saving?`กำลังบันทึก… ${f.bulkDone||0}/${f.bulk.length}`:`บันทึกทั้งหมด ${f.bulk.length} ข้อ`}</button><span class="soft" style="font-size:12.5px">ข้อที่มี ⚠ จะใช้ค่าที่เดาให้ ตรวจอีกทีได้ในคลังข้อสอบ</span></div></div>`:""}</div></details>`:"";
+  const body=f.kind==="quiz"?`${pasteBox}${inp("q","คำถาม","เช่น ES-9920 ไฟม่วงกระพริบหมายถึงอะไร?",true)}
     <div class="row2">${inp("a","ตัวเลือก ก")}${inp("b","ตัวเลือก ข")}</div><div class="row2">${inp("c","ตัวเลือก ค (เว้นได้)")}${inp("d","ตัวเลือก ง (เว้นได้)")}</div>
     <div class="row2"><label style="display:grid;gap:3px;font-size:13px;font-weight:600">เฉลย<select name="answer">${["ก","ข","ค","ง"].map(k=>`<option ${String(f.d.answer||"ก")===k?"selected":""}>${k}</option>`).join("")}</select></label><label style="display:grid;gap:3px;font-size:13px;font-weight:600">รูปประกอบ<span style="display:flex;gap:6px"><input name="image" placeholder="อัปโหลด หรือวางลิงก์รูป" value="${esc(f.d.image||"")}" style="flex:1;min-width:0">${S.admin?`<label class="btn small" style="display:inline-flex;cursor:pointer;white-space:nowrap">${f.uploading?"กำลังอัปโหลด…":"⬆ อัปโหลดรูป"}<input type="file" accept="image/*" hidden data-lf-img></label>`:""}</span>${f.d.image?`<img src="${esc(imgUrl(f.d.image))}" alt="" style="max-height:120px;border-radius:8px;border:1px solid var(--line);justify-self:start">`:""}</label></div>
     ${inp("explain","คำอธิบายเฉลย","ทำไมข้อนี้ถึงถูก / ลิงก์วิธีแก้",true)}`
@@ -1387,6 +1392,67 @@ async function learnDel(kind,id){
   try{ await run("deleteRow",S.pw,kind,id,{send:false,note:""}); flash("ลบแล้ว"); S.T=null; await learnLoad(true); }catch(err){ flash("ลบไม่สำเร็จ: "+errMsg(err)); }
 }
 
+/* ---------- วางข้อสอบทั้งก้อน → แยกอัตโนมัติ ---------- */
+const QL=["ก","ข","ค","ง"];
+function quizProdMatch(txt){
+  const t=String(txt||"").trim().toLowerCase(); if(!t) return "";
+  const norm=x=>String(x||"").toLowerCase().replace(/[\s\-_]/g,"");
+  const tn=norm(t); let best="";
+  for(const p of S.prods){ const idn=norm(p.id), nn=norm(p.name); if(idn===tn||nn===tn) return p.id; if(!best&&(nn.includes(tn)||tn.includes(nn)||idn.includes(tn)||tn.includes(idn))) best=p.id; }
+  return best;
+}
+function parseQuizText(txt,defProd,defTopic){
+  const lines=String(txt||"").replace(/\r/g,"").split("\n").map(l=>l.replace(/\u00a0/g," ").trim());
+  const out=[]; let cur=null, last=null, prod=defProd||"", topic=defTopic||"";
+  const optIdx=k=>{ k=String(k).toLowerCase(); const i=QL.indexOf(k); if(i>=0) return i; if(/^[a-d]$/.test(k)) return k.charCodeAt(0)-97; if(/^[1-4]$/.test(k)) return +k-1; return -1; };
+  const close=()=>{ if(cur&&cur.q&&cur.opts.length>=2){ const o=Object.assign({prod:cur.prod,topic:cur.topic,q:cur.q.trim(),explain:cur.explain.trim(),image:cur.image||""},{a:"",b:"",c:"",d:""}); cur.opts.slice(0,4).forEach((v,i)=>o["abcd"[i]]=v.trim()); let ans=cur.ans; if(ans<0&&cur.ansText){ const at=cur.ansText.toLowerCase(); ans=cur.opts.findIndex(v=>v.toLowerCase()===at); if(ans<0) ans=cur.opts.findIndex(v=>v.toLowerCase().includes(at)||at.includes(v.toLowerCase())); } if(ans<0){ ans=0; o.warn="⚠ ไม่พบเฉลย ใช้ข้อ ก"; } if(ans>3){ ans=0; o.warn="⚠ เฉลยเกิน 4 ตัวเลือก"; } if(cur.opts.length>4) o.warn=(o.warn?o.warn+" ":"")+"⚠ ตัดเหลือ 4 ตัวเลือก"; o.answer=QL[ans]; out.push(o); } else if(cur&&cur.q){ out.push(Object.assign({prod:cur.prod,topic:cur.topic,q:cur.q.trim(),a:cur.opts[0]||"",b:cur.opts[1]||"",c:"",d:"",answer:"ก",explain:cur.explain.trim(),image:cur.image||"",warn:"⚠ ตัวเลือกไม่ครบ 2 ข้อ"},{})); } cur=null; last=null; };
+  const open=()=>{ if(!cur) cur={prod,topic,q:"",opts:[],ans:-1,ansText:"",explain:"",image:""}; };
+  for(const raw of lines){
+    if(!raw){ if(cur&&cur.q&&cur.opts.length>=2&&(cur.ans>=0||cur.ansText||cur.explain)) close(); else if(cur) last=null; continue; }
+    let m;
+    if((m=raw.match(/^(รุ่น(สินค้า)?|รุ่นที่|model)\s*[:：]\s*(.+)$/i))){ const id=quizProdMatch(m[3]); if(cur) cur.prod=id||cur.prod; prod=id||prod; last=null; continue; }
+    if((m=raw.match(/^(หมวด|หัวข้อ|topic)\s*[:：]\s*(.+)$/i))){ if(cur) cur.topic=m[2].trim(); topic=m[2].trim(); last=null; continue; }
+    if((m=raw.match(/^(รูป(ประกอบ)?|image|img)\s*[:：]\s*(.+)$/i))){ open(); cur.image=m[3].trim(); last=null; continue; }
+    if((m=raw.match(/^(เฉลย|คำตอบ|ตอบ|answer|ans)\s*[:：]?\s*(.+)$/i))){ open(); const v=m[2].trim().replace(/^(ข้อ|ตัวเลือก)\s*/,""); const k=v.match(/^([ก-ง]|[a-dA-D]|[1-4])(\s*[.)\]:：]|\s|$)/); if(k&&optIdx(k[1])>=0&&(v.length<=3||/^[ก-ง]|^[a-dA-D]/.test(v))) cur.ans=optIdx(k[1]); else cur.ansText=v; last="ans"; continue; }
+    if((m=raw.match(/^(อธิบาย|คำอธิบาย(เฉลย)?|เหตุผล|explain(ation)?|note)\s*[:：]?\s*(.*)$/i))){ open(); cur.explain=(cur.explain?cur.explain+"\n":"")+m[4]; last="explain"; continue; }
+    if((m=raw.match(/^(คำถาม|โจทย์|question|q)\s*[:：]\s*(.*)$/i))){ if(cur&&cur.q) close(); open(); cur.q=m[2]; last="q"; continue; }
+    const om=raw.match(/^[\(\[]?([ก-ง]|[a-dA-D]|[1-4])\s*[.)\]:：]\s*(.+)$/)||raw.match(/^[-•▪●]\s*(.+)$/);
+    if(om){ const isDash=om.length===2; const txt=(isDash?om[1]:om[2]).trim(); const num=!isDash&&/^[1-4]$/.test(om[1]);
+      const expect=cur?cur.opts.length:0;
+      const asOpt=isDash||!num||(cur&&cur.q&&expect<4&&optIdx(om[1])===expect&&(cur.ans<0&&!cur.ansText));
+      if(asOpt){ open(); if(!cur.q){ cur.q=txt; last="q"; continue; } const star=/\s*[*✓✔]\s*$|^\s*[*✓✔]\s*/.test(txt); const clean=txt.replace(/\s*[*✓✔]\s*$/,"").replace(/^\s*[*✓✔]\s*/,"").trim(); cur.opts.push(clean); if(star) cur.ans=cur.opts.length-1; last="opt"; continue; }
+    }
+    const qn=raw.match(/^(ข้อ(ที่)?\s*)?(\d+)\s*[.)\]:：]\s*(.+)$/);
+    if(qn){ if(cur&&cur.q) close(); open(); cur.q=qn[4]; last="q"; continue; }
+    open();
+    if(last==="explain") cur.explain+="\n"+raw;
+    else if(!cur.q){ cur.q=raw; last="q"; }
+    else if(last==="q"&&!cur.opts.length) cur.q+="\n"+raw;
+    else if(last==="opt"&&cur.opts.length){ cur.opts[cur.opts.length-1]+=" "+raw; }
+    else if(cur.opts.length>=2&&(cur.ans>=0||cur.ansText)){ cur.explain=(cur.explain?cur.explain+"\n":"")+raw; last="explain"; }
+    else { cur.q+="\n"+raw; last="q"; }
+  }
+  close(); return out;
+}
+function lfParse(){
+  const f=S.lf, root=$("#lf"); if(!f||!root) return;
+  root.querySelectorAll("[name]").forEach(el=>{ if(el.type==="checkbox"||el.name==="paste") return; f.d[el.name]=el.value; }); f.notify=root.querySelector("[name=notify]").checked;
+  f.paste=(root.querySelector("[name=paste]")||{}).value||""; f.pasteOpen=true;
+  const rows=parseQuizText(f.paste,f.d.prod||"",f.d.topic||"");
+  if(!rows.length){ flash("แยกไม่ได้ ลองใส่ให้มีคำถามและตัวเลือกอย่างน้อย 2 ข้อ"); render(); return; }
+  if(rows.length===1){ Object.assign(f.d,rows[0]); delete f.d.warn; f.bulk=null; f.pasteOpen=false; flash("แยกใส่ฟอร์มแล้ว ตรวจแล้วกดบันทึก"); }
+  else { f.bulk=rows; flash(`แยกได้ ${rows.length} ข้อ`); }
+  render();
+}
+async function lfBulkSave(){
+  const f=S.lf; if(!f||!f.bulk||!f.bulk.length) return; const root=$("#lf"); if(root) f.notify=root.querySelector("[name=notify]").checked;
+  f.saving=true; f.bulkDone=0; render(); let fail=0;
+  for(const b of f.bulk){ const d=Object.assign({},b); delete d.warn; try{ await run("saveRow",S.pw,"quiz",d,{send:false,note:""}); }catch(err){ fail++; } f.bulkDone++; render(); }
+  const n=f.bulk.length-fail; S.lf=null; flash(fail?`บันทึกแล้ว ${n} ข้อ ไม่สำเร็จ ${fail} ข้อ`:`บันทึกแล้ว ${n} ข้อ`);
+  if(f.notify&&n){ try{ await run("notifyTeam",S.pw,`📝 เพิ่มข้อสอบใหม่ ${n} ข้อ`,""); }catch(e){} }
+  await learnLoad(true);
+}
+
 /* ---------- เหตุการณ์ของศูนย์เรียนรู้ ---------- */
 async function lfImgUpload(file){
   const f=S.lf, root=$("#lf"); if(!f||!root) return; root.querySelectorAll("[name]").forEach(el=>{ if(el.type==="checkbox") return; f.d[el.name]=el.value; }); f.notify=root.querySelector("[name=notify]").checked;
@@ -1400,7 +1466,7 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
 });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
+  const t=ev.target.closest("[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
   if(!t) return; const d=t.dataset;
   if(d.learnCards!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"cards",topic:d.learnCards,prod:d.prod||""}; go("learn"); return; } startCards(d.learnCards,d.prod||""); return; }
   if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } startQuiz(d.learnQuiz,d.prod||""); return; }
@@ -1414,6 +1480,9 @@ document.addEventListener("click",ev=>{
   if(d.learnAdd!==undefined){ S.lf={kind:d.learnAdd,d:{prod:S.route.v==="prod"?S.route.id:""},notify:true}; render(); return; }
   if(d.learnEdit!==undefined){ const [kind,id]=d.learnEdit.split("|"); const r=(kind==="quiz"?S.L.quiz:kind==="flow"?S.L.flows:kind==="role"?S.L.roles:S.L.cards).find(x=>String(x.id)===id); if(r){ S.lf={kind,d:Object.assign({},r),notify:true}; render(); } return; }
   if(d.learnDel!==undefined){ if(S.lfDel!==d.learnDel){ S.lfDel=d.learnDel; render(); return; } const [kind,id]=d.learnDel.split("|"); learnDel(kind,id); return; }
+  if(d.lfParse!==undefined){ lfParse(); return; }
+  if(d.lfBulkSave!==undefined){ lfBulkSave(); return; }
+  if(d.lfBulkRm!==undefined){ const f=S.lf; if(f&&f.bulk){ f.bulk.splice(+d.lfBulkRm,1); if(!f.bulk.length) f.bulk=null; f.pasteOpen=true; const root=$("#lf"); if(root){ root.querySelectorAll("[name]").forEach(el=>{ if(el.type==="checkbox"||el.name==="paste") return; f.d[el.name]=el.value; }); f.paste=(root.querySelector("[name=paste]")||{}).value||""; } render(); } return; }
   if(d.lfClose!==undefined){ if(t.classList.contains("lb") && ev.target.closest(".box")) return; S.lf=null; render(); return; }
 });
 
