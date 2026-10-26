@@ -149,6 +149,8 @@ table.spec tr:last-child th,table.spec tr:last-child td{border-bottom:0}
 .trouble summary::before{content:"?";flex:none;width:20px;height:20px;border-radius:50%;background:var(--warn-soft);color:var(--warn);font-size:12px;display:grid;place-items:center;font-family:var(--f-mono)}
 .trouble[open] summary{border-bottom:1px dashed var(--line)}
 .trouble ol{margin:0;padding:10px 14px 12px 44px;display:grid;gap:4px;font-size:14px}
+.simgs{display:flex;gap:8px;flex-wrap:wrap;padding:0 14px 12px}.simgs img{width:170px;height:124px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--paper-2);cursor:zoom-in}
+.ied .simgs{padding:0}.ied .simgs figure{margin:0;position:relative}.ied .simgs img{width:96px;height:72px;cursor:default}.ied .simgs button{position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;border:0;background:var(--ink);color:var(--paper);font-size:12px;line-height:1}
 .media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 .media{display:flex;gap:10px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;text-decoration:none;color:var(--ink);min-width:0}
 .media:hover{border-color:var(--accent)}
@@ -370,13 +372,16 @@ function parseSecs(txt){
   const out=[]; let cur=null;
   String(txt||"").split("\n").forEach(raw=>{
     const l=raw.trim(); if(!l) return;
-    if(l.startsWith("## ")){cur={title:l.slice(3).trim(),lines:[]};out.push(cur);return;}
-    if(!cur){cur={title:"",lines:[]};out.push(cur);}
+    if(l.startsWith("## ")){cur={title:l.slice(3).trim(),lines:[],imgs:[]};out.push(cur);return;}
+    if(!cur){cur={title:"",lines:[],imgs:[]};out.push(cur);}
+    const im=l.match(/^(?:[-•*]\s*)?img:\s*(.+)$/i); if(im){ (cur.imgs||(cur.imgs=[])).push(im[1].trim()); return; }
     cur.lines.push(l.replace(/^[-•*]\s*/,""));
   });
   return out;
 }
-const secsToText = secs => (secs||[]).map(s=>(s.title?"## "+s.title+"\n":"")+(s.lines||[]).map(l=>"- "+l).join("\n")).join("\n\n");
+const secsToText = secs => (secs||[]).map(s=>(s.title?"## "+s.title+"\n":"")+(s.lines||[]).map(l=>"- "+l).concat((s.imgs||[]).map(i=>"img: "+i)).join("\n")).join("\n\n");
+/* รูปประกอบของหัวข้อ (เก็บเป็นบรรทัด img: ในชีต) */
+const secImgs = (s,label) => (s.imgs||[]).length?`<div class="simgs">${s.imgs.map(i=>`<img src="${esc(imgUrl(i))}" alt="" loading="lazy" data-zoom="${esc(imgUrl(i))}" data-label="${esc(label||s.title||"")}">`).join("")}</div>`:"";
 const parseSpecs = txt => String(txt||"").split("\n").map(l=>l.trim()).filter(Boolean).map(l=>{const i=l.indexOf(":");return i<0?[l,""]:[l.slice(0,i).trim(),l.slice(i+1).trim()]});
 const specsToText = sp => (sp||[]).map(([k,v])=>k+": "+v).join("\n");
 const parseLines = txt => String(txt||"").split("\n").map(l=>l.trim().replace(/^[-•*]\s*/,"")).filter(Boolean);
@@ -495,13 +500,12 @@ function go(token){
   render(); window.scrollTo(0,0);
 }
 window.addEventListener("popstate",e=>{ setRoute((e.state&&e.state.v)||new URLSearchParams(location.search).get("v")||""); render(); });
-const PAGE_URL=location.origin+location.pathname;
 
 /* ---------- render ---------- */
 function render(){
   const app=$("#app");
   if(S.editing && ($("#f-name")||$("#c-name"))) collect();
-  if(S.ie) ieCollect();
+  if(S.ie){ if(S.ie.skip) S.ie.skip=false; else ieCollect(); }
   if(S.A&&S.A.form&&$("#aform")) appCollect();
   let main="";
   if(S.loading) main=`<div class="wrap state">${ill("label")}<p>กำลังโหลดข้อมูลสินค้า…</p></div>`;
@@ -632,10 +636,10 @@ function warBlock(s,cls=""){
   const tl=[],rest=[];
   (s.lines||[]).forEach(l=>{const m=l.match(/^(?:เครื่องมีปัญหา)?(ภายใน\s*7\s*วัน|เกิน\s*[^\s]+(?:\s*(?:วัน|เดือน|ปี))?(?:[–-][^\s]+(?:\s*(?:วัน|เดือน|ปี))?)?)\s*(.*)$/); if(m&&tl.length<3) tl.push([m[1].replace(/ภายใน\s*/,"0–"),m[2]]); else rest.push(l);});
   if(tl.length<2) return secBlock(s,cls);
-  return `<div class="sec ${cls}">${s.title?`<h3>${esc(s.title)}</h3>`:""}<div class="timeline">${tl.map(([k,v])=>`<div><div class="k">${esc(k)}</div>${linkify(v)}</div>`).join("")}</div><ul>${rest.map(l=>`<li>${linkify(l)}</li>`).join("")}</ul></div>`;
+  return `<div class="sec ${cls}">${s.title?`<h3>${esc(s.title)}</h3>`:""}<div class="timeline">${tl.map(([k,v])=>`<div><div class="k">${esc(k)}</div>${linkify(v)}</div>`).join("")}</div><ul>${rest.map(l=>`<li>${linkify(l)}</li>`).join("")}</ul>${secImgs(s)}</div>`;
 }
 function secBlock(s,cls=""){
-  return `<div class="sec ${cls}">${s.title?`<h3>${esc(s.title)}</h3>`:""}<ul>${(s.lines||[]).map(l=>`<li>${linkify(l)}</li>`).join("")}</ul></div>`;
+  return `<div class="sec ${cls}">${s.title?`<h3>${esc(s.title)}</h3>`:""}<ul>${(s.lines||[]).map(l=>`<li>${linkify(l)}</li>`).join("")}</ul>${secImgs(s)}</div>`;
 }
 function linkify(t){
   return esc(t).replace(/(https?:\/\/[^\s<]+)/g,u=>`<a href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="${u}">${u.length>48?u.slice(0,46)+"…":u}</a>`);
@@ -656,7 +660,7 @@ function viewProd(id){
   if(S.tab==="feat") panel = W("features",(p.features||[]).length?`<ul class="feat">${p.features.map(f=>`<li>${esc(f)}</li>`).join("")}</ul>`:`<div class="empty">ยังไม่มีจุดเด่น</div>`)
      + `<div style="margin-top:18px">`+W("notes",(p.notes||[]).length?p.notes.map(s=>secBlock(s,"warn")).join(""):(S.admin?`<div class="empty">ยังไม่มีข้อควรรู้ก่อนขาย</div>`:""))+`</div>`;
   if(S.tab==="setup") panel = mediaPanel(p);
-  if(S.tab==="fix") panel = W("troubles",(p.troubles||[]).length? p.troubles.map((t,i)=>`<details class="trouble" ${i===0?"open":""}><summary>${esc(t.title)}</summary><ol>${(t.lines||[]).map(l=>`<li>${linkify(l)}</li>`).join("")}</ol></details>`).join("") : `<div class="empty">ยังไม่มีวิธีแก้ปัญหาสำหรับรุ่นนี้</div>`);
+  if(S.tab==="fix") panel = W("troubles",(p.troubles||[]).length? p.troubles.map((t,i)=>`<details class="trouble" ${i===0?"open":""}><summary>${esc(t.title)}</summary><ol>${(t.lines||[]).map(l=>`<li>${linkify(l)}</li>`).join("")}</ol>${secImgs(t)}</details>`).join("") : `<div class="empty">ยังไม่มีวิธีแก้ปัญหาสำหรับรุ่นนี้</div>`);
   if(S.tab==="war"){ const w=(p.warranty&&p.warranty.length)?p.warranty:(c.warranty||[]); panel = W("warranty", w.length? w.filter(s=>!/เครื่องสำรอง|นับระยะ/.test(s.title)).map(s=>warBlock(s,/ไม่รวม|ยกเว้น|สิ้นสุด/.test(s.title)?"warn":"")).join("") + (p.warranty&&p.warranty.length?"":`<p class="soft">ใช้เงื่อนไขร่วมของหมวด ${esc(c.name)}${S.admin?" · กด ✎ เพื่อกำหนดเฉพาะรุ่นนี้":""}</p>`) : `<div class="empty">ยังไม่มีเงื่อนไขประกัน</div>`); }
   if(S.tab==="care"){ const w=(p.care&&p.care.length)?p.care:(c.care||[]); panel = W("care", w.length? w.map(s=>secBlock(s,/ระวัง|ห้าม/.test(s.title)?"warn":"")).join("")+(p.care&&p.care.length?"":`<p class="soft">ใช้เงื่อนไขร่วมของหมวด ${esc(c.name)}${S.admin?" · กด ✎ เพื่อกำหนดเฉพาะรุ่นนี้":""}</p>`):`<div class="empty">ยังไม่มีข้อมูลการดูแลรักษา</div>`); }
 
@@ -737,7 +741,7 @@ function viewSearch(){
   const tHits=[]; S.prods.forEach(p=>(p.troubles||[]).forEach(t=>{ if(t.title.toLowerCase().includes(q)) tHits.push([p,t]); }));
   return `<div class="wrap"><div class="section-h"><h2>ผลค้นหา "${esc(S.q)}"</h2><button class="btn small" data-clear-q>ล้างคำค้น</button></div>
    ${hits.length?`<div class="grid">${hits.map(card).join("")}</div>`:`<div class="empty">ไม่พบรุ่นที่ตรงกัน</div>`}
-   ${tHits.length?`<div class="section-h"><h2>วิธีแก้ปัญหาที่เกี่ยวข้อง</h2></div>${tHits.slice(0,20).map(([p,t])=>`<details class="trouble"><summary>${esc(t.title)} <span class="chip">${esc(p.name)}</span></summary><ol>${(t.lines||[]).map(l=>`<li>${linkify(l)}</li>`).join("")}</ol></details>`).join("")}`:""}
+   ${tHits.length?`<div class="section-h"><h2>วิธีแก้ปัญหาที่เกี่ยวข้อง</h2></div>${tHits.slice(0,20).map(([p,t])=>`<details class="trouble"><summary>${esc(t.title)} <span class="chip">${esc(p.name)}</span></summary><ol>${(t.lines||[]).map(l=>`<li>${linkify(l)}</li>`).join("")}</ol>${secImgs(t)}</details>`).join("")}`:""}
    <div style="height:40px"></div></div>`;
 }
 
@@ -918,7 +922,8 @@ function ieEditor(){
   else if(t==="kv") body=draft.map(([k,v],i)=>`<div class="kv"><input name="k" placeholder="หัวข้อ" value="${esc(k)}"><input name="v" placeholder="ค่า" value="${esc(v)}">${rm(i)}</div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มแถว</button>`;
   else if(t==="variants") body=draft.map((x,i)=>`<div class="kv"><input name="k" placeholder="รหัสรุ่น" value="${esc(x.code)}"><input name="v" placeholder="คำอธิบาย" value="${esc(x.note)}">${rm(i)}</div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มรุ่นย่อย</button>`;
   else if(t==="lines") body=`<label>บรรทัดละ 1 ข้อ<textarea name="lines" style="min-height:120px">${esc((draft||[]).join("\n"))}</textarea></label>`;
-  else if(t==="secs") body=draft.map((sec,i)=>`<div class="ies"><div style="display:flex;gap:6px"><input name="t" placeholder="หัวข้อ (เช่น อาการ / ชื่อแพ็กเกจ)" value="${esc(sec.title)}">${rm(i)}</div><textarea name="l" placeholder="รายการ บรรทัดละ 1 ข้อ">${esc((sec.lines||[]).join("\n"))}</textarea></div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มหัวข้อ</button>`;
+  else if(t==="secs") body=draft.map((sec,i)=>`<div class="ies"><div style="display:flex;gap:6px"><input name="t" placeholder="หัวข้อ (เช่น อาการ / ชื่อแพ็กเกจ)" value="${esc(sec.title)}">${rm(i)}</div><textarea name="l" placeholder="รายการ บรรทัดละ 1 ข้อ">${esc((sec.lines||[]).join("\n"))}</textarea>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="simgs">${(sec.imgs||[]).map((im,j)=>`<figure><img src="${esc(imgUrl(im))}" alt=""><button type="button" data-ie-imgrm="${i}|${j}" aria-label="เอารูปออก">×</button></figure>`).join("")}</div>${assets?`<label class="btn small" style="display:inline-flex;cursor:pointer">${S.ie.uploading===i?"กำลังอัปโหลด…":"⬆ เพิ่มรูปประกอบ"}<input type="file" accept="image/*" multiple hidden data-ie-secimg="${i}"></label>`:""}</div></div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มหัวข้อ</button>`;
   else if(t==="media") body=draft.map((x,i)=>`<div class="kv3"><input name="g" placeholder="กลุ่ม เช่น ติดตั้งไดรเวอร์" value="${esc(x.group)}"><input name="n" placeholder="ชื่อ" value="${esc(x.label)}"><input name="u" placeholder="https://…" value="${esc(x.url)}">${rm(i)}</div>`).join("")+`<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn small" data-ie-add>+ เพิ่มลิงก์</button>${assets?`<label class="btn small" for="ie-up" style="cursor:pointer">⬆ อัปโหลดไฟล์ PDF / คู่มือ</label><input id="ie-up" type="file" accept="application/pdf,image/*" multiple hidden>`:""}</div>`;
   else if(t==="leds") body=draft.map((x,i)=>`<div class="kv3"><select name="c">${LEDC.map(c=>`<option ${x.color===c?"selected":""}>${c}</option>`).join("")}</select><input name="n" placeholder="ชื่อไฟ เช่น แดงกระพริบ" value="${esc(x.name)}"><input name="f" placeholder="วิธีแก้" value="${esc(x.fix)}">${rm(i)}</div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มไฟ</button>`;
   else if(t==="images") body=`<div class="imgs">${draft.map((a,i)=>`<figure><img src="${imgUrl(a)}" alt="">${rm(i)}</figure>`).join("")}</div>
@@ -943,15 +948,15 @@ function ieCollect(){
   else if(t==="kv") S.ie.draft=all(".kv").map(r=>[r.querySelector("[name=k]").value.trim(),r.querySelector("[name=v]").value.trim()]);
   else if(t==="variants") S.ie.draft=all(".kv").map(r=>({code:r.querySelector("[name=k]").value.trim(),note:r.querySelector("[name=v]").value.trim()}));
   else if(t==="lines") S.ie.draft=parseLines(v("lines"));
-  else if(t==="secs") S.ie.draft=all(".ies").map(r=>({title:r.querySelector("[name=t]").value.trim(),lines:parseLines(r.querySelector("[name=l]").value)}));
+  else if(t==="secs"){ const old=S.ie.draft||[]; S.ie.draft=all(".ies").map((r,i)=>({title:r.querySelector("[name=t]").value.trim(),lines:parseLines(r.querySelector("[name=l]").value),imgs:(old[i]&&old[i].imgs)||[]})); }
   else if(t==="media") S.ie.draft=all(".kv3").map(r=>({group:r.querySelector("[name=g]").value.trim(),label:r.querySelector("[name=n]").value.trim(),url:r.querySelector("[name=u]").value.trim()}));
   else if(t==="leds") S.ie.draft=all(".kv3").map(r=>({color:r.querySelector("[name=c]").value,name:r.querySelector("[name=n]").value.trim(),fix:r.querySelector("[name=f]").value.trim()}));
 }
 function ieAdd(){ ieCollect(); const t=FT[S.ie.field], d=S.ie.draft;
-  if(t==="kv") d.push(["",""]); else if(t==="variants") d.push({code:"",note:""}); else if(t==="secs") d.push({title:"",lines:[]});
-  else if(t==="media") d.push({group:"",label:"",url:""}); else if(t==="leds") d.push({color:"red",name:"",fix:""}); render(); }
-function ieRm(i){ ieCollect(); S.ie.draft.splice(i,1); render(); }
-function ieAddUrl(){ ieCollect(); const u=(S.ie.imgurl||"").trim(); if(!/^https?:\/\//i.test(u)){ flash("ลิงก์รูปต้องขึ้นต้นด้วย http"); return; } S.ie.draft.push(u); S.ie.imgurl=""; render(); }
+  if(t==="kv") d.push(["",""]); else if(t==="variants") d.push({code:"",note:""}); else if(t==="secs") d.push({title:"",lines:[],imgs:[]});
+  else if(t==="media") d.push({group:"",label:"",url:""}); else if(t==="leds") d.push({color:"red",name:"",fix:""}); S.ie.skip=true; render(); }
+function ieRm(i){ ieCollect(); S.ie.draft.splice(i,1); S.ie.skip=true; render(); }
+function ieAddUrl(){ ieCollect(); const u=(S.ie.imgurl||"").trim(); if(!/^https?:\/\//i.test(u)){ flash("ลิงก์รูปต้องขึ้นต้นด้วย http"); return; } S.ie.draft.push(u); S.ie.imgurl=""; S.ie.skip=true; render(); }
 /* ข้อความสรุปที่จะส่งเข้าไลน์ (สร้างแบบเดียวกับฝั่งเซิร์ฟเวอร์) */
 const FIELD_TH={name:"ชื่อรุ่น",cat:"หมวด",tagline:"คำอธิบายสั้น",conn:"การเชื่อมต่อ",volume:"ปริมาณงาน",badges:"ป้ายจุดเด่น",quick:"ข้อมูลเด่น",variants:"รุ่นย่อย",specs:"สเปก",features:"จุดเด่น",notes:"ข้อควรรู้",software:"โปรแกรม/แอป",media:"คลิป/ไฟล์/ลิงก์",troubles:"วิธีแก้ปัญหา",leds:"ถอดรหัสไฟหน้าเครื่อง",warranty:"ประกัน",care:"การดูแลรักษา",images:"รูปสินค้า",intro:"คำอธิบายหมวด",guide:"วิธีเลือกรุ่น",short:"คำโปรย",icon:"ภาพจำลอง",order:"ลำดับ",why:"คำอธิบายสเปก"};
 function lineMsg(kind,obj,base,note){
@@ -972,7 +977,7 @@ function ieBuild(){
   const base=kind==="prod"?prodById(id):catById(id); const obj=JSON.parse(JSON.stringify(base));
   if(field==="head"){ if(!draft.name){flash("กรุณาใส่ชื่อรุ่น");return null;} Object.assign(obj,{name:draft.name,tagline:draft.tagline,conn:splitC(draft.conn),badges:splitC(draft.badges),volume:draft.volume,order:draft.order}); }
   else if(field==="chead"){ if(!draft.name){flash("กรุณาใส่ชื่อหมวด");return null;} Object.assign(obj,draft); }
-  else { let d=draft; if(FT[field]==="kv") d=d.filter(([k])=>k); if(FT[field]==="secs") d=d.filter(x=>x.title||x.lines.length); if(FT[field]==="media") d=d.filter(x=>x.url); if(FT[field]==="variants") d=d.filter(x=>x.code); if(FT[field]==="leds") d=d.filter(x=>x.name); obj[field]=d; }
+  else { let d=draft; if(FT[field]==="kv") d=d.filter(([k])=>k); if(FT[field]==="secs") d=d.filter(x=>x.title||x.lines.length||(x.imgs||[]).length); if(FT[field]==="media") d=d.filter(x=>x.url); if(FT[field]==="variants") d=d.filter(x=>x.code); if(FT[field]==="leds") d=d.filter(x=>x.name); obj[field]=d; }
   return obj;
 }
 async function ieSave(){
@@ -992,8 +997,21 @@ async function ieUpload(files){
       else S.ie.draft.push({group:"คู่มือ / ไฟล์",label:f.name,url:r.url});
     }catch(err){ flash("อัปโหลดไม่สำเร็จ: "+errMsg(err)); }
   }
-  S.ie.uploading=false; render(); flash("อัปโหลดแล้ว กดบันทึกเพื่อเก็บเข้าสินค้า");
+  S.ie.uploading=false; S.ie.skip=true; render(); flash("อัปโหลดแล้ว กดบันทึกเพื่อเก็บเข้าสินค้า");
 }
+
+/* รูปประกอบในหัวข้อ (วิธีแก้ปัญหา ประกัน การดูแล ฯลฯ) */
+async function ieSecUpload(i,files){
+  ieCollect(); S.ie.uploading=i; S.ie.skip=true; render();
+  for(const f of files){
+    try{ if(f.size>40*1024*1024){ flash("ไฟล์ "+f.name+" ใหญ่เกิน 40 MB"); continue; }
+      const x=await readAsB64(f,false); const r=await run("uploadFile",S.pw,x.name,x.mime,x.b64); const sec=S.ie.draft[i]; if(sec) (sec.imgs||(sec.imgs=[])).push(r.id); }
+    catch(err){ S.ie.skip=true; flash("อัปโหลดไม่สำเร็จ: "+errMsg(err)); }
+  }
+  S.ie.uploading=false; S.ie.skip=true; render(); flash("เพิ่มรูปแล้ว กดบันทึกเพื่อเก็บ");
+}
+document.addEventListener("change",ev=>{ if(ev.target.matches("[data-ie-secimg]")&&ev.target.files.length&&S.ie) ieSecUpload(+ev.target.dataset.ieSecimg,[...ev.target.files]); });
+document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-ie-imgrm]"); if(!t||!S.ie) return; ieCollect(); const [i,j]=t.dataset.ieImgrm.split("|").map(Number); const sec=S.ie.draft[i]; if(sec&&sec.imgs) sec.imgs.splice(j,1); S.ie.skip=true; render(); });
 
 /* ---------- events ---------- */
 function bind(){
@@ -2427,29 +2445,29 @@ function viewBank(){
   const prodOpts=`<option value="">ทุกรุ่น</option>`+[...S.prods].sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(p=>`<option value="${esc(p.id)}" ${B.prod===p.id?"selected":""}>${esc(p.name)}</option>`).join("");
   const srcs=[["all","ทั้งหมด"],["auto","ระบบสร้าง"],["custom","ทีมเพิ่มเอง"],["override","เขียนทับแล้ว"],["wrong","ทีมผิดบ่อย"],["img","มีรูป"]];
   return learnNav("bank")+`<div class="wrap"><button class="back" data-go="learn">‹ กลับศูนย์เรียนรู้</button>
-   <div class="section-h"><h2>คลังข้อสอบ</h2><span class="soft">ทั้งหมด ${all.length} ข้อ · ระบบสร้าง ${all.filter(q=>!q.custom).length} · ทีมเพิ่ม ${all.filter(q=>q.custom).length} · เขียนทับ ${all.filter(q=>q.override).length} · ซ่อน ${hidden.length}</span></div>
+   <div class="section-h"><h2>คลังข้อสอบ</h2><span class="soft">ทั้งหมด ${all.length} ข้อ · ระบบสร้าง ${all.filter(q=>!q.custom).length} · ทีมเพิ่ม ${all.filter(q=>q.custom).length} · เขียนทับ ${all.filter(q=>q.override).length} · ลบแล้ว ${hidden.length}</span></div>
    <div class="side" style="margin-bottom:12px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
      <label class="search" style="flex:1;min-width:220px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="bank-q" placeholder="ค้นหาคำถาม / ตัวเลือก / ชื่อรุ่น" value="${esc(B.q)}" autocomplete="off"></label>
      <select id="bank-prod" style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px">${prodOpts}</select>
      <button class="btn small primary" data-learn-add="quiz">+ เพิ่มคำถาม</button></div>
      <div style="display:flex;gap:6px;flex-wrap:wrap">${srcs.map(([k,l])=>`<button class="btn small ${B.src===k?"primary":""}" data-bank-src="${k}">${l}</button>`).join("")}</div>
-     <span class="soft">ข้อที่ระบบสร้างจากข้อมูลสินค้า: ถ้าข้อมูลผิด กด <b>แก้ที่ต้นทาง</b> จะพาไปแก้ในหน้าสินค้า (ข้อสอบและหน้าสินค้าเปลี่ยนพร้อมกัน) · ถ้าอยากเปลี่ยนแค่คำถามข้อนี้ กด <b>เขียนทับ</b> · ไม่อยากให้ออกสอบ กด <b>ซ่อน</b></span></div>
+     <span class="soft">ข้อที่ระบบสร้างจากข้อมูลสินค้า: ถ้าข้อมูลผิด กด <b>แก้ที่ต้นทาง</b> จะพาไปแก้ในหน้าสินค้า (ข้อสอบและหน้าสินค้าเปลี่ยนพร้อมกัน) · ถ้าอยากเปลี่ยนแค่คำถามข้อนี้ กด <b>เขียนทับ</b> · ไม่อยากให้ออกสอบ กด <b>ลบ</b> (กู้คืนได้จากรายการด้านล่าง)</span></div>
    ${shown.length?`<div style="display:grid;gap:8px">${shown.map(({q,src,wrong,kind})=>{ const o=qOrigin(q); return `<div class="sec" style="margin:0"><div style="padding:10px 14px;display:grid;gap:6px">
      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="chip ${kind==="override"?"amber":kind==="custom"?"acc":""}">${kind==="override"?"เขียนทับ":src}</span>${q.prod?`<span class="chip">${esc(prodName(q.prod))}</span>`:q.cat?`<span class="chip">${esc((catById(q.cat)||{}).name||q.cat)}</span>`:""}${q.image?`<span class="chip">มีรูป</span>`:""}${wrong?`<span class="chip warn" style="background:var(--warn-soft);color:var(--warn);border-color:transparent">ทีมผิด ${wrong} ครั้ง</span>`:""}${q.custom&&q.custom.by?`<span class="soft">โดย ${esc(q.custom.by)}</span>`:""}</div>
      <b>${esc(q.q)}</b>
      <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px">${q.opts.map((x,i)=>`<span class="chip ${i===q.ans?"ok":""}">${i===q.ans?"✓ ":""}${esc(x)}</span>`).join("")}</div>
      ${q.explain?`<span class="soft">${esc(q.explain)}</span>`:""}
      <div style="display:flex;gap:6px;flex-wrap:wrap">${kind==="custom"?`<button class="btn small" data-learn-edit="quiz|${esc(q.custom.id)}">แก้ไข</button><button class="btn small danger" data-learn-del="quiz|${esc(q.custom.id)}">${S.lfDel==="quiz|"+q.custom.id?"ยืนยันลบ?":"ลบ"}</button>`
-       :`${o?`<button class="btn small" data-bank-origin="${esc(q.id)}">แก้ที่ต้นทาง (${FL[o[2]]||o[2]})</button>`:""}<button class="btn small" data-bank-override="${esc(q.id)}">${kind==="override"?"แก้ที่เขียนทับ":"เขียนทับ"}</button>${kind==="override"?`<button class="btn small" data-bank-restore="${esc(q.id)}">กลับไปใช้ของระบบ</button>`:""}<button class="btn small danger" data-bank-hide="${esc(q.id)}">${S.lfDel==="hide|"+q.id?"ยืนยันซ่อน?":"ซ่อน"}</button>`}</div>
+       :`${o?`<button class="btn small" data-bank-origin="${esc(q.id)}">แก้ที่ต้นทาง (${FL[o[2]]||o[2]})</button>`:""}<button class="btn small" data-bank-override="${esc(q.id)}">${kind==="override"?"แก้ที่เขียนทับ":"เขียนทับ"}</button>${kind==="override"?`<button class="btn small" data-bank-restore="${esc(q.id)}">กลับไปใช้ของระบบ</button>`:""}<button class="btn small danger" data-bank-hide="${esc(q.id)}">${S.lfDel==="hide|"+q.id?"ยืนยันลบ?":"ลบ"}</button>`}</div>
    </div></div>`; }).join("")}</div>${list.length>shown.length?`<div style="text-align:center;margin-top:12px"><button class="btn" data-bank-more>แสดงเพิ่ม (${list.length-shown.length} ข้อ)</button></div>`:""}`:`<div class="empty">ไม่พบคำถามที่ตรงเงื่อนไข</div>`}
-   ${hidden.length?`<details class="trouble" style="margin-top:14px"><summary>ข้อที่ซ่อนไว้ ${hidden.length} ข้อ</summary><div style="padding:8px 14px;display:grid;gap:6px;font-size:14px">${hidden.map(r=>`<div style="display:flex;gap:8px;align-items:center"><span style="flex:1;min-width:0">${esc(r.q)}${r.prod?` <span class="soft">· ${esc(prodName(r.prod))}</span>`:""}</span><button class="btn small" data-bank-restore="${esc(String(r.id).slice(3))}">กู้คืน</button></div>`).join("")}</div></details>`:""}
+   ${hidden.length?`<details class="trouble" style="margin-top:14px"><summary>ข้อที่ลบไว้ ${hidden.length} ข้อ (กู้คืนได้)</summary><div style="padding:8px 14px;display:grid;gap:6px;font-size:14px">${hidden.map(r=>`<div style="display:flex;gap:8px;align-items:center"><span style="flex:1;min-width:0">${esc(r.q)}${r.prod?` <span class="soft">· ${esc(prodName(r.prod))}</span>`:""}</span><button class="btn small" data-bank-restore="${esc(String(r.id).slice(3))}">กู้คืน</button></div>`).join("")}</div></details>`:""}
    <div style="height:40px"></div></div>`;
 }
 function bankOrigin(qid){ const q=allQuiz().find(x=>x.id===qid); const o=q&&qOrigin(q); if(!o) return; const [kind,id,field]=o; go(kind==="prod"?"p-"+id:"c-"+id); if(field==="specs"||field==="head") S.tab="spec"; if(field==="leds"||field==="troubles") S.tab="fix"; if(field==="warranty") S.tab="war"; render(); setTimeout(()=>{ ieOpen(kind,id,field); const el=$("#ie"); if(el) el.scrollIntoView({behavior:"smooth",block:"center"}); },50); }
 function bankOverride(qid){ const q=allQuiz().find(x=>x.id===qid); if(!q) return; const others=q.opts.filter((_,i)=>i!==q.ans);
   S.lf={kind:"quiz",d:{id:"ov:"+qid,prod:q.prod||"",topic:q.topic,q:q.q,a:q.opts[q.ans],b:others[0]||"",c:others[1]||"",d:others[2]||"",answer:"ก",explain:q.explain||"",image:q.image||"",status:"override"},notify:false}; render(); }
 async function bankHide(qid){ const q=allQuiz().find(x=>x.id===qid); if(!q) return; S.lfDel=null;
-  try{ await run("saveRow",S.pw,"quiz",{id:"ov:"+qid,prod:q.prod||"",topic:q.topic,q:q.q.slice(0,120),status:"hidden"},{send:false,note:""}); flash("ซ่อนแล้ว"); await learnLoad(true); }catch(err){ flash("ไม่สำเร็จ: "+errMsg(err)); } }
+  try{ await run("saveRow",S.pw,"quiz",{id:"ov:"+qid,prod:q.prod||"",topic:q.topic,q:q.q.slice(0,120),status:"hidden"},{send:false,note:""}); flash("ลบแล้ว (กู้คืนได้ด้านล่าง)"); await learnLoad(true); }catch(err){ flash("ไม่สำเร็จ: "+errMsg(err)); } }
 async function bankRestore(qid){ try{ await run("deleteRow",S.pw,"quiz","ov:"+qid,{send:false,note:""}); flash("กลับไปใช้ข้อของระบบแล้ว"); await learnLoad(true); }catch(err){ flash("ไม่สำเร็จ: "+errMsg(err)); } }
 
 /* ---------- นักเรียน (หลังบ้าน) ---------- */
