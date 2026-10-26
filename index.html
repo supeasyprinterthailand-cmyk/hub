@@ -553,7 +553,7 @@ function render(){
     <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn small" data-login-close>ยกเลิก</button><button class="btn small primary">เข้าสู่ระบบ</button></div></form>`:""}
   ${S.editing?viewEditor():""}
   ${viewer()}
-  ${learnForm()}
+  ${learnForm()}${draftForm()}
   ${caseForm()}
   ${assignForm()}
   ${S.toast?`<div class="toast" role="status">${esc(S.toast)}</div>`:""}`;
@@ -1072,7 +1072,7 @@ function toggleCmp(id){
   saveCompare(); render();
 }
 
-document.addEventListener("keydown",ev=>{ if(ev.key==="Escape"){ if(S.view){ S.view=null; render(); } else if(S.lf){ S.lf=null; render(); } else if(S.cf){ S.cf=null; render(); } else if(S.af){ S.af=null; render(); } else if(S.ie){ S.ie=null; render(); } } });
+document.addEventListener("keydown",ev=>{ if(ev.key==="Escape"){ if(S.view){ S.view=null; render(); } else if(S.df){ S.df=null; render(); } else if(S.lf){ S.lf=null; render(); } else if(S.cf){ S.cf=null; render(); } else if(S.af){ S.af=null; render(); } else if(S.ie){ S.ie=null; render(); } } });
 
 /* =====================================================================
    ศูนย์เรียนรู้: Flashcard (ทบทวนตามความจำ) + แบบทดสอบ
@@ -1136,8 +1136,8 @@ function autoCards(){
 const qOffSet = () => { try{ return new Set(JSON.parse((S.settings||{}).noquiz||"[]")); }catch(e){ return new Set(); } };
 const qOffProds = () => { try{ const v=JSON.parse((S.settings||{}).quizOffProds||"[]"); return v.map(x=>typeof x==="string"?{id:x}:x); }catch(e){ return []; } };
 const autoQuizOn = () => (S.settings||{}).autoQuiz!=="0";
-function autoQuiz(){
-  const out=[]; const off=qOffSet(), offP=new Set(qOffProds().map(x=>x.id)), on=autoQuizOn(); const pad=(arr,need,pool)=>{ const r=uniq(arr).slice(0,need); for(const x of shuffle(pool)){ if(r.length>=need) break; if(x&&!r.includes(x)) r.push(x); } return r; };
+function autoQuiz(raw){
+  const out=[]; const off=raw?new Set():qOffSet(), offP=raw?new Set():new Set(qOffProds().map(x=>x.id)), on=raw?true:autoQuizOn(); const pad=(arr,need,pool)=>{ const r=uniq(arr).slice(0,need); for(const x of shuffle(pool)){ if(r.length>=need) break; if(x&&!r.includes(x)) r.push(x); } return r; };
   const allSpecVals=k=>S.prods.flatMap(p=>(p.specs||[]).filter(s=>s[0]===k).map(s=>s[1]));
   const anySpecVals=S.prods.flatMap(p=>(p.specs||[]).map(s=>s[1]));
   const allLedFix=S.prods.flatMap(p=>(p.leds||[]).map(l=>l.fix));
@@ -1158,8 +1158,12 @@ function autoQuiz(){
     const others=S.cats.filter(x=>x!==c).flatMap(x=>(x.warranty||[]).flatMap(y=>y.lines||[])).filter(x=>x!==line); const d=pad([],3,others); if(d.length<2) return;
     out.push({id:`cw:${c.id}:${i}`,prod:"",cat:c.id,topic:"war",q:`ประกันหมวด ${c.name} หัวข้อ “${w.title}” ข้อใดถูกต้อง?`,opts:[line,...d],ans:0,explain:(w.lines||[]).slice(0,3).join(" · "),link:"c-"+c.id}); }));
   if(on) cmpQuiz(out,offP,off);
-  S.L.quiz.forEach(r=>{ if(String(r.status||"")==="pending"||offP.has(String(r.prod||""))) return;
-    const isOv=String(r.id||"").startsWith("ov:"); if(isOv&&(on||String(r.status||"")==="hidden"||String(r.status||"")==="deleted")) return; /* ปิดระบบอัตโนมัติ = ข้อที่เขียนทับไว้ยังใช้ต่อแบบข้อปกติ */
+  if(raw) return out;
+  /* ข้อที่ระบบสร้างซึ่งทีม "ร่างแล้วบันทึก" เป็นข้อของตัวเองแล้ว (id dq:…) ไม่ต้องโผล่ซ้ำ */
+  const drafted=new Set(S.L.quiz.map(r=>String(r.id||"")).filter(x=>x.startsWith("dq:")).map(x=>x.slice(3)));
+  const out2=drafted.size?out.filter(q=>!drafted.has(q.id)):out; out.length=0; out.push(...out2);
+  S.L.quiz.forEach(r=>{ if(String(r.status||"")==="pending") return;
+    const isOv=String(r.id||"").startsWith("ov:"); if(isOv&&offP.has(String(r.prod||""))) return; if(isOv&&(on||String(r.status||"")==="hidden"||String(r.status||"")==="deleted")) return; /* ปิดระบบอัตโนมัติ = ข้อที่เขียนทับไว้ยังใช้ต่อแบบข้อปกติ */
     const opts=[r.a,r.b,r.c,r.d].map(x=>String(x||"").trim()).filter(Boolean); if(!r.q||opts.length<2) return;
     const key=String(r.answer||"ก").trim().toLowerCase(); const ans=Math.max(0,{"ก":0,"ข":1,"ค":2,"ง":3,"a":0,"b":1,"c":2,"d":3,"1":0,"2":1,"3":2,"4":3}[key]??0);
     out.push({id:(isOv?"":"x:")+r.id,prod:String(r.prod||""),topic:"custom",q:String(r.q),opts,ans:Math.min(ans,opts.length-1),explain:String(r.explain||""),image:String(r.image||""),link:r.prod?"p-"+r.prod:"",custom:r}); });
@@ -1392,6 +1396,38 @@ async function learnDel(kind,id){
   try{ await run("deleteRow",S.pw,kind,id,{send:false,note:""}); flash("ลบแล้ว"); S.T=null; await learnLoad(true); }catch(err){ flash("ลบไม่สำเร็จ: "+errMsg(err)); }
 }
 
+/* ---------- ให้ระบบร่างข้อสอบ → ทีมแก้ก่อนบันทึก ---------- */
+const DQ_TOPIC={spec:"สเปก",led:"ไฟสถานะ",fix:"แก้ปัญหา",conn:"การเชื่อมต่อ",war:"ประกัน",cmp:"เปรียบเทียบ"};
+function draftPick(prod,n){
+  const ov=overrides(); const saved=new Set(S.L.quiz.map(r=>String(r.id||"")));
+  const pool=autoQuiz(true).filter(q=>(!prod||q.prod===prod)&&!saved.has("dq:"+q.id)&&!(ov[q.id]&&/hidden|deleted/.test(String(ov[q.id].status||""))));
+  return shuffle(pool).slice(0,n).map(q=>{ const others=q.opts.filter((_,i)=>i!==q.ans); const o=shuffle([q.opts[q.ans],...others].slice(0,4)); const ans=o.indexOf(q.opts[q.ans]);
+    return {src:q.id,prod:q.prod||"",topic:DQ_TOPIC[q.topic]||q.topic||"",q:q.q,a:o[0]||"",b:o[1]||"",c:o[2]||"",d:o[3]||"",answer:QL[ans<0?0:ans],explain:q.explain||"",image:q.image||""}; });
+}
+function draftOpen(){ const prod=(S.B||{}).prod||""; const items=draftPick(prod,5); if(!items.length){ flash(prod?"ไม่มีข้อให้ร่างเพิ่มสำหรับรุ่นนี้แล้ว":"ไม่มีข้อให้ร่างเพิ่มแล้ว"); return; } S.df={prod,items,saving:false}; render(); }
+function draftCollect(){ const f=S.df, root=$("#df"); if(!f||!root) return; f.items.forEach((it,i)=>{ const b=root.querySelector(`[data-df-item="${i}"]`); if(!b) return; ["q","a","b","c","d","answer","explain","topic"].forEach(k=>{ const el=b.querySelector(`[name=${k}]`); if(el) it[k]=el.value; }); }); }
+function draftForm(){
+  const f=S.df; if(!f) return "";
+  const inp=(i,it,n,l,ta)=>`<label style="display:grid;gap:3px;font-size:12.5px;font-weight:600">${l}${ta?`<textarea name="${n}" style="font-family:var(--f-body);min-height:48px">${esc(it[n]||"")}</textarea>`:`<input name="${n}" value="${esc(it[n]||"")}">`}</label>`;
+  return `<div class="lb" data-df-close><div class="box txt" style="width:min(760px,100%)"><header><b>ระบบร่างให้ ${f.items.length} ข้อ${f.prod?" · "+esc(prodName(f.prod)):""} — แก้ให้ดีแล้วค่อยบันทึก</b><button class="btn small" data-df-close>ปิด ✕</button></header>
+    <div id="df" class="ied" style="margin:0;border:0;border-radius:0;max-height:70vh;overflow:auto;display:grid;gap:12px">
+    ${f.items.length?f.items.map((it,i)=>`<div class="sec" data-df-item="${i}" style="margin:0"><h3 style="display:flex;gap:8px;align-items:center">ข้อ ${i+1} <span class="soft" style="font-weight:400;font-size:12.5px">· ${esc(prodName(it.prod)||"ทุกรุ่น")} · ${esc(it.topic)}</span><span style="flex:1"></span><button type="button" class="btn small" data-df-redo="${i}">สุ่มข้ออื่น</button><button type="button" class="btn small danger" data-df-skip="${i}">ข้าม (ไม่เอาข้อนี้)</button></h3>
+      <div style="padding:8px 12px;display:grid;gap:6px">${inp(i,it,"q","คำถาม",true)}<div class="row2">${inp(i,it,"a","ก")}${inp(i,it,"b","ข")}</div><div class="row2">${inp(i,it,"c","ค (เว้นได้)")}${inp(i,it,"d","ง (เว้นได้)")}</div>
+      <div class="row2"><label style="display:grid;gap:3px;font-size:12.5px;font-weight:600">เฉลย<select name="answer">${QL.map(k=>`<option ${it.answer===k?"selected":""}>${k}</option>`).join("")}</select></label>${inp(i,it,"topic","หมวด")}</div>${inp(i,it,"explain","คำอธิบายเฉลย",true)}</div></div>`).join(""):`<div class="empty">ข้ามหมดแล้ว กด "ร่างชุดใหม่"</div>`}
+    </div><div class="bar" style="padding:10px 14px"><button type="button" class="btn small" data-df-more>+ ร่างเพิ่มอีก 5 ข้อ</button><span style="flex:1"></span><button type="button" class="btn small" data-df-close>ยกเลิก</button><button type="button" class="btn small primary" data-df-save ${f.saving||!f.items.length?"disabled":""}>${f.saving?`กำลังบันทึก… ${f.done||0}/${f.items.length}`:`บันทึก ${f.items.length} ข้อ`}</button></div></div></div>`;
+}
+async function draftSave(){
+  const f=S.df; if(!f||f.saving) return; draftCollect();
+  const bad=f.items.findIndex(it=>!String(it.q).trim()||!String(it.a).trim()||!String(it.b).trim()); if(bad>=0){ flash(`ข้อ ${bad+1} ต้องมีคำถามและตัวเลือก ก, ข`); return; }
+  f.saving=true; f.done=0; render(); let fail=0;
+  for(const it of f.items){ const d={id:"dq:"+it.src,prod:it.prod,topic:String(it.topic||"").trim(),q:String(it.q).trim(),a:String(it.a).trim(),b:String(it.b).trim(),c:String(it.c||"").trim(),d:String(it.d||"").trim(),answer:it.answer||"ก",explain:String(it.explain||"").trim(),image:it.image||""};
+    try{ await run("saveRow",S.pw,"quiz",d,{send:false,note:""}); }catch(e){ fail++; } f.done++; render(); }
+  const n=f.items.length-fail; S.df=null; flash(fail?`บันทึกแล้ว ${n} ข้อ ไม่สำเร็จ ${fail} ข้อ`:`บันทึกแล้ว ${n} ข้อ`); await learnLoad(true);
+}
+async function draftSkip(i){ const f=S.df; if(!f) return; draftCollect(); const it=f.items[i]; f.items.splice(i,1); render();
+  /* ข้าม = ซ่อนข้อต้นทางไว้ จะได้ไม่ถูกสุ่มมาอีก (กู้คืนได้ในคลังข้อสอบ) */
+  try{ await run("saveRow",S.pw,"quiz",{id:"ov:"+it.src,prod:it.prod,topic:it.topic,q:String(it.q||"").slice(0,120),status:"hidden"},{send:false,note:""}); const d=await run("getLearn",S.L.user||"-",S.L.token||""); S.L.quiz=d.quiz||[]; _aq=null; }catch(e){} }
+
 /* ---------- วางข้อสอบทั้งก้อน → แยกอัตโนมัติ ---------- */
 const QL=["ก","ข","ค","ง"];
 function quizProdMatch(txt){
@@ -1466,7 +1502,7 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
 });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
+  const t=ev.target.closest("[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
   if(!t) return; const d=t.dataset;
   if(d.learnCards!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"cards",topic:d.learnCards,prod:d.prod||""}; go("learn"); return; } startCards(d.learnCards,d.prod||""); return; }
   if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } startQuiz(d.learnQuiz,d.prod||""); return; }
@@ -1481,6 +1517,12 @@ document.addEventListener("click",ev=>{
   if(d.learnEdit!==undefined){ const [kind,id]=d.learnEdit.split("|"); const r=(kind==="quiz"?S.L.quiz:kind==="flow"?S.L.flows:kind==="role"?S.L.roles:S.L.cards).find(x=>String(x.id)===id); if(r){ S.lf={kind,d:Object.assign({},r),notify:true}; render(); } return; }
   if(d.learnDel!==undefined){ if(S.lfDel!==d.learnDel){ S.lfDel=d.learnDel; render(); return; } const [kind,id]=d.learnDel.split("|"); learnDel(kind,id); return; }
   if(d.lfParse!==undefined){ lfParse(); return; }
+  if(d.bankDraft!==undefined){ draftOpen(); return; }
+  if(d.dfClose!==undefined){ if(t.classList.contains("lb") && ev.target.closest(".box")) return; S.df=null; render(); return; }
+  if(d.dfSave!==undefined){ draftSave(); return; }
+  if(d.dfSkip!==undefined){ draftSkip(+d.dfSkip); return; }
+  if(d.dfRedo!==undefined){ const f=S.df; if(!f) return; draftCollect(); const used=new Set(f.items.map(x=>x.src)); const alt=draftPick(f.prod,30).find(x=>!used.has(x.src)); if(!alt){ flash("ไม่มีข้ออื่นให้สุ่มแล้ว"); return; } f.items[+d.dfRedo]=alt; render(); return; }
+  if(d.dfMore!==undefined){ const f=S.df; if(!f) return; draftCollect(); const used=new Set(f.items.map(x=>x.src)); const more=draftPick(f.prod,40).filter(x=>!used.has(x.src)).slice(0,5); if(!more.length){ flash("ไม่มีข้อให้ร่างเพิ่มแล้ว"); return; } f.items.push(...more); render(); return; }
   if(d.lfBulkSave!==undefined){ lfBulkSave(); return; }
   if(d.lfBulkRm!==undefined){ const f=S.lf; if(f&&f.bulk){ f.bulk.splice(+d.lfBulkRm,1); if(!f.bulk.length) f.bulk=null; f.pasteOpen=true; const root=$("#lf"); if(root){ root.querySelectorAll("[name]").forEach(el=>{ if(el.type==="checkbox"||el.name==="paste") return; f.d[el.name]=el.value; }); f.paste=(root.querySelector("[name=paste]")||{}).value||""; } render(); } return; }
   if(d.lfClose!==undefined){ if(t.classList.contains("lb") && ev.target.closest(".box")) return; S.lf=null; render(); return; }
@@ -2526,6 +2568,7 @@ function viewBank(){
   const B=S.B||(S.B={q:"",prod:"",src:"all",n:60}); const ov=overrides(); const wc=wrongCounts();
   const all=allQuiz(); const hidden=Object.values(ov).filter(r=>String(r.status||"")==="hidden"); const offList=qOffProds().filter(x=>!x.perm&&prodById(x.id));
   let list=all.map(q=>({q,src:qSource(q),wrong:wc[q.q.slice(0,60)]||0,kind:q.override?"override":q.custom?"custom":"auto"}));
+  const rank={custom:0,override:1,auto:2}; list=list.map((x,i)=>Object.assign(x,{i})).sort((a,b)=>rank[a.kind]-rank[b.kind]||(a.kind==="custom"?String(b.q.custom.ts||"").localeCompare(String(a.q.custom.ts||"")):0)||a.i-b.i);
   if(B.src==="override") list=list.filter(x=>x.kind==="override"); else if(B.src==="custom") list=list.filter(x=>x.kind==="custom"); else if(B.src==="auto") list=list.filter(x=>x.kind==="auto"); else if(B.src==="wrong") list=list.filter(x=>x.wrong>0).sort((a,b)=>b.wrong-a.wrong); else if(B.src==="img") list=list.filter(x=>x.q.image);
   if(B.prod) list=list.filter(x=>x.q.prod===B.prod||(!x.q.prod&&x.q.cat===(prodById(B.prod)||{}).cat));
   const qq=B.q.trim().toLowerCase(); if(qq) list=list.filter(x=>(x.q.q+" "+x.q.opts.join(" ")+" "+prodName(x.q.prod)).toLowerCase().includes(qq));
@@ -2539,6 +2582,7 @@ function viewBank(){
      <select id="bank-prod" style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px">${prodOpts}</select>
      <button class="btn small primary" data-learn-add="quiz">+ เพิ่มคำถาม</button>${B.prod?`<button class="btn small danger" data-bank-prod-off="${esc(B.prod)}">${S.lfDel==="prod|"+B.prod?"ยืนยันลบข้อสอบทั้งรุ่น "+esc(prodName(B.prod))+"?":"ลบข้อสอบทั้งรุ่นนี้"}</button>`:""}</div>
      <div style="display:flex;gap:6px;flex-wrap:wrap">${srcs.map(([k,l])=>`<button class="btn small ${B.src===k?"primary":""}" data-bank-src="${k}">${l}</button>`).join("")}</div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:10px;font-size:13.5px"><b>ข้อสอบที่ระบบสร้างเอง:</b><span class="chip ${autoQuizOn()?"ok":""}">${autoQuizOn()?"เปิด (ทีมเห็นทุกข้อ)":"ปิด · ทีมเห็นเฉพาะข้อที่ทีมเขียน/ร่างแล้วบันทึก"}</span><button class="btn small ${autoQuizOn()?"danger":""}" data-set-autoquiz="${autoQuizOn()?"0":"1"}">${autoQuizOn()?"ปิดทั้งหมด (ลบออกจากข้อสอบ)":"เปิดกลับ"}</button><button class="btn small primary" data-bank-draft>✨ ให้ระบบร่าง 5 ข้อ${B.prod?" ของ "+esc(prodName(B.prod)):""} ให้แก้ก่อนบันทึก</button></div>
      <span class="soft">ข้อที่ระบบสร้างจากข้อมูลสินค้า: ถ้าข้อมูลผิด กด <b>แก้ที่ต้นทาง</b> จะพาไปแก้ในหน้าสินค้า (ข้อสอบและหน้าสินค้าเปลี่ยนพร้อมกัน) · ถ้าอยากเปลี่ยนแค่คำถามข้อนี้ กด <b>เขียนทับ</b> · ไม่อยากให้ออกสอบ กด <b>ลบ</b> (กู้คืนได้จากรายการด้านล่าง)</span></div>
    ${shown.length?`<div style="display:grid;gap:8px">${shown.map(({q,src,wrong,kind})=>{ const o=qOrigin(q); return `<div class="sec" style="margin:0"><div style="padding:10px 14px;display:grid;gap:6px">
      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="chip ${kind==="override"?"amber":kind==="custom"?"acc":""}">${kind==="override"?"เขียนทับ":src}</span>${q.prod?`<span class="chip">${esc(prodName(q.prod))}</span>`:q.cat?`<span class="chip">${esc((catById(q.cat)||{}).name||q.cat)}</span>`:""}${q.image?`<span class="chip">มีรูป</span>`:""}${wrong?`<span class="chip warn" style="background:var(--warn-soft);color:var(--warn);border-color:transparent">ทีมผิด ${wrong} ครั้ง</span>`:""}${q.custom&&q.custom.by?`<span class="soft">โดย ${esc(q.custom.by)}</span>`:""}</div>
