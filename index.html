@@ -931,7 +931,9 @@ function ieEditor(){
     <div style="display:flex;gap:6px"><input name="imgurl" placeholder="หรือวางลิงก์รูปจากเว็บ https://…" value="${esc(S.ie.imgurl||"")}"><button type="button" class="btn small" data-ie-addurl style="white-space:nowrap">+ เพิ่มจากลิงก์</button></div>
     <span class="hint">รูปแรกคือรูปหลัก ลากไม่ได้แต่ลบแล้วเพิ่มใหม่เพื่อเรียงได้ · ใส่กี่รูปก็ได้ (แนะนำไม่เกิน 8)</span>`;
   const hint = field==="warranty"||field==="care" ? `<span class="hint">เว้นว่างทั้งหมด = ใช้เงื่อนไขร่วมของหมวด</span>` : field==="why" ? `<span class="hint">หัวข้อ = ชื่อสเปก (เช่น ความเร็ว) · ค่า = คำอธิบาย | hi หรือ lo (ค่าสูง/ต่ำกว่าดีกว่า) | ลูกค้าแบบไหนควรเลือก — เขียนเฉพาะที่อยากอธิบายเอง ที่เหลือระบบอธิบายให้อัตโนมัติ</span>` : "";
+  const qkey=S.ie.kind+":"+S.ie.id+":"+field; const qsrc=["specs","leds","troubles","head","warranty"].includes(field)&&(S.ie.kind==="prod"||field==="warranty");
   return `<div class="ied" id="ie"><div class="ttl">แก้ไข · ${FL[field]}</div>${body}${hint}
+    ${qsrc?`<label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink);background:var(--amber-soft);border-radius:8px;padding:6px 10px"><input type="checkbox" name="noquiz" ${S.ie.noquiz===undefined?(qOffSet().has(qkey)?"checked":""):(S.ie.noquiz?"checked":"")}>ไม่ต้องสร้างข้อสอบ/Flashcard อัตโนมัติจากส่วนนี้ <span class="soft">(ข้อที่ระบบเคยสร้างจากส่วนนี้จะหายไป)</span></label>`:""}
     <div class="bar"><label><input type="checkbox" name="notify" ${S.ie.notify?"checked":""}>ส่งสรุปที่แก้เข้าไลน์</label><input type="text" name="note" placeholder="บอกทีมสั้น ๆ ว่าแก้อะไร (ไม่ใส่ก็ได้)" value="${esc(S.ie.note)}">
       <button type="button" class="btn small" data-ie-preview>ดูตัวอย่างข้อความ</button><button type="button" class="btn small" data-ie-cancel>ยกเลิก</button><button type="button" class="btn small primary" data-ie-save ${saving?"disabled":""}>${saving?"กำลังบันทึก…":"บันทึก"}</button></div></div>`;
 }
@@ -941,6 +943,7 @@ function ieCollect(){
   const {field}=S.ie, t=FT[field], all=sel=>[...root.querySelectorAll(sel)];
   const nb=root.querySelector('[name=notify]'); if(nb) S.ie.notify=nb.checked;
   const nt=root.querySelector('[name=note]'); if(nt) S.ie.note=nt.value;
+  const nq=root.querySelector('[name=noquiz]'); if(nq) S.ie.noquiz=nq.checked;
   const iu=root.querySelector('[name=imgurl]'); if(iu) S.ie.imgurl=iu.value;
   const v=n=>(root.querySelector(`[name=${n}]`)||{}).value??"";
   if(t==="head") S.ie.draft={name:v("name").trim(),tagline:v("tagline").trim(),conn:v("conn"),badges:v("badges"),volume:v("volume").trim(),order:Number(v("order"))||10};
@@ -984,7 +987,9 @@ async function ieSave(){
   const obj=ieBuild(); if(!obj) return; const {kind}=S.ie;
   const row=kind==="prod"?prodToRow(obj):catToRow(obj);
   S.ie.saving=true; render();
-  try{ applyData(await run("saveRow",S.pw,kind,row,{send:S.ie.notify!==false,note:S.ie.note||""})); S.ie=null; flash("บันทึกแล้ว"); }
+  try{ const ie=S.ie; applyData(await run("saveRow",S.pw,kind,row,{send:ie.notify!==false,note:ie.note||""}));
+    if(ie.noquiz!==undefined){ const key=ie.kind+":"+ie.id+":"+ie.field; const set=qOffSet(); if(ie.noquiz!==set.has(key)){ if(ie.noquiz) set.add(key); else set.delete(key); await setSettingUI("noquiz",JSON.stringify([...set])); } }
+    S.ie=null; _aq=null; flash("บันทึกแล้ว"); }
   catch(err){ S.ie.saving=false; flash("บันทึกไม่สำเร็จ: "+errMsg(err)); }
 }
 async function ieUpload(files){
@@ -1110,51 +1115,57 @@ function streak(){
 
 /* ---------- สร้างการ์ดอัตโนมัติจากข้อมูลสินค้า ---------- */
 function autoCards(){
-  const out=[];
-  S.prods.forEach(p=>{
+  const out=[]; const off=qOffSet(), offP=new Set(qOffProds().map(x=>x.id)), on=autoQuizOn();
+  if(on) S.prods.forEach(p=>{ if(offP.has(p.id)) return; const no=f=>off.has("prod:"+p.id+":"+f);
     const c=catById(p.cat)||{};
-    (p.specs||[]).forEach(([k,v],i)=>{ if(k&&v) out.push({id:`s:${p.id}:${i}`,prod:p.id,topic:"spec",front:`<b>${esc(p.name)}</b><br>${esc(k)} คือเท่าไร?`,back:esc(v)}); });
-    (p.leds||[]).forEach((l,i)=>{ if(l.name&&l.fix) out.push({id:`l:${p.id}:${i}`,prod:p.id,topic:"led",front:`<b>${esc(p.name)}</b><br>ไฟหน้าเครื่อง “${esc(l.name)}” ต้องทำอย่างไร?`,back:esc(l.fix)}); });
+    if(!no("specs")) (p.specs||[]).forEach(([k,v],i)=>{ if(k&&v) out.push({id:`s:${p.id}:${i}`,prod:p.id,topic:"spec",front:`<b>${esc(p.name)}</b><br>${esc(k)} คือเท่าไร?`,back:esc(v)}); });
+    if(!no("leds")) (p.leds||[]).forEach((l,i)=>{ if(l.name&&l.fix) out.push({id:`l:${p.id}:${i}`,prod:p.id,topic:"led",front:`<b>${esc(p.name)}</b><br>ไฟหน้าเครื่อง “${esc(l.name)}” ต้องทำอย่างไร?`,back:esc(l.fix)}); });
     (p.variants||[]).forEach((v,i)=>{ if(v.code&&v.note) out.push({id:`v:${p.id}:${i}`,prod:p.id,topic:"variant",front:`<b>${esc(v.code)}</b><br>คือรุ่นแบบไหน?`,back:esc(v.note)}); });
-    (p.troubles||[]).forEach((t,i)=>{ if(t.title&&(t.lines||[]).length) out.push({id:`t:${p.id}:${i}`,prod:p.id,topic:"fix",front:`<b>${esc(p.name)}</b><br>ลูกค้าแจ้ง: “${esc(t.title)}” แก้ยังไง?`,back:`<ol style="margin:0;padding-left:20px;text-align:left;font-size:15px">${t.lines.slice(0,5).map(l=>`<li>${esc(l)}</li>`).join("")}</ol>`}); });
-    if((p.conn||[]).length) out.push({id:`c:${p.id}`,prod:p.id,topic:"conn",front:`<b>${esc(p.name)}</b><br>เชื่อมต่อได้แบบไหนบ้าง${p.volume?" และเหมาะกับงานปริมาณเท่าไร":""}?`,back:esc(p.conn.join(" · "))+(p.volume?`<br><span class="soft">${esc(p.volume)}</span>`:"")});
-    (p.warranty||[]).forEach((w,i)=>{ if(w.title&&(w.lines||[]).length) out.push({id:`w:${p.id}:${i}`,prod:p.id,topic:"war",front:`<b>${esc(p.name)}</b><br>ประกัน: “${esc(w.title)}” มีเงื่อนไขว่า?`,back:`<ul style="margin:0;padding-left:20px;text-align:left;font-size:15px">${w.lines.slice(0,4).map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`}); });
+    if(!no("troubles")) (p.troubles||[]).forEach((t,i)=>{ if(t.title&&(t.lines||[]).length) out.push({id:`t:${p.id}:${i}`,prod:p.id,topic:"fix",front:`<b>${esc(p.name)}</b><br>ลูกค้าแจ้ง: “${esc(t.title)}” แก้ยังไง?`,back:`<ol style="margin:0;padding-left:20px;text-align:left;font-size:15px">${t.lines.slice(0,5).map(l=>`<li>${esc(l)}</li>`).join("")}</ol>`}); });
+    if(!no("head")&&(p.conn||[]).length) out.push({id:`c:${p.id}`,prod:p.id,topic:"conn",front:`<b>${esc(p.name)}</b><br>เชื่อมต่อได้แบบไหนบ้าง${p.volume?" และเหมาะกับงานปริมาณเท่าไร":""}?`,back:esc(p.conn.join(" · "))+(p.volume?`<br><span class="soft">${esc(p.volume)}</span>`:"")});
+    if(!no("warranty")) (p.warranty||[]).forEach((w,i)=>{ if(w.title&&(w.lines||[]).length) out.push({id:`w:${p.id}:${i}`,prod:p.id,topic:"war",front:`<b>${esc(p.name)}</b><br>ประกัน: “${esc(w.title)}” มีเงื่อนไขว่า?`,back:`<ul style="margin:0;padding-left:20px;text-align:left;font-size:15px">${w.lines.slice(0,4).map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`}); });
   });
-  S.cats.forEach(c=>(c.warranty||[]).forEach((w,i)=>{ if(w.title&&(w.lines||[]).length) out.push({id:`cw:${c.id}:${i}`,prod:"",cat:c.id,topic:"war",front:`<b>${esc(c.name)}</b><br>ประกัน: “${esc(w.title)}” มีเงื่อนไขว่า?`,back:`<ul style="margin:0;padding-left:20px;text-align:left;font-size:15px">${w.lines.slice(0,4).map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`}); }));
-  S.L.cards.forEach(r=>{ if(String(r.status||"")==="pending") return; out.push({id:"x:"+r.id,prod:String(r.prod||""),topic:"custom",front:esc(r.front),back:esc(r.back),custom:r}); });
+  if(on) S.cats.forEach(c=>(c.warranty||[]).forEach((w,i)=>{ if(w.title&&(w.lines||[]).length&&!off.has("cat:"+c.id+":warranty")) out.push({id:`cw:${c.id}:${i}`,prod:"",cat:c.id,topic:"war",front:`<b>${esc(c.name)}</b><br>ประกัน: “${esc(w.title)}” มีเงื่อนไขว่า?`,back:`<ul style="margin:0;padding-left:20px;text-align:left;font-size:15px">${w.lines.slice(0,4).map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`}); }));
+  S.L.cards.forEach(r=>{ if(String(r.status||"")==="pending"||offP.has(String(r.prod||""))) return; out.push({id:"x:"+r.id,prod:String(r.prod||""),topic:"custom",front:esc(r.front),back:esc(r.back),custom:r}); });
   /* การ์ดจากข้อที่เคยตอบผิด */
   Object.keys(S.L.prog.wrong||{}).forEach(qid=>{ const q=allQuiz().find(x=>x.id===qid); if(q) out.push({id:"q:"+qid,prod:q.prod,topic:"wrong",front:esc(q.q),back:`<b>${esc(q.opts[q.ans])}</b>${q.explain?`<br><span class="soft">${esc(q.explain)}</span>`:""}`}); });
   return out;
 }
 /* ---------- สร้างคำถามอัตโนมัติ ---------- */
+/* ตั้งค่าข้อสอบอัตโนมัติ: ปิดทั้งระบบ / ปิดเฉพาะส่วน (เช่น สเปกของรุ่น X) / ลบทั้งรุ่น — เก็บในชีต Settings */
+const qOffSet = () => { try{ return new Set(JSON.parse((S.settings||{}).noquiz||"[]")); }catch(e){ return new Set(); } };
+const qOffProds = () => { try{ const v=JSON.parse((S.settings||{}).quizOffProds||"[]"); return v.map(x=>typeof x==="string"?{id:x}:x); }catch(e){ return []; } };
+const autoQuizOn = () => (S.settings||{}).autoQuiz!=="0";
 function autoQuiz(){
-  const out=[]; const pad=(arr,need,pool)=>{ const r=uniq(arr).slice(0,need); for(const x of shuffle(pool)){ if(r.length>=need) break; if(x&&!r.includes(x)) r.push(x); } return r; };
+  const out=[]; const off=qOffSet(), offP=new Set(qOffProds().map(x=>x.id)), on=autoQuizOn(); const pad=(arr,need,pool)=>{ const r=uniq(arr).slice(0,need); for(const x of shuffle(pool)){ if(r.length>=need) break; if(x&&!r.includes(x)) r.push(x); } return r; };
   const allSpecVals=k=>S.prods.flatMap(p=>(p.specs||[]).filter(s=>s[0]===k).map(s=>s[1]));
   const anySpecVals=S.prods.flatMap(p=>(p.specs||[]).map(s=>s[1]));
   const allLedFix=S.prods.flatMap(p=>(p.leds||[]).map(l=>l.fix));
   const allFirstSteps=S.prods.flatMap(p=>(p.troubles||[]).map(t=>(t.lines||[])[0]));
   const allConn=uniq(S.prods.map(p=>(p.conn||[]).join(" + ")));
-  S.prods.forEach(p=>{
-    (p.specs||[]).forEach(([k,v],i)=>{ if(!k||!v) return; const d=pad(allSpecVals(k).filter(x=>x!==v),3,anySpecVals.filter(x=>x!==v)); if(d.length<2) return;
+  if(on) S.prods.forEach(p=>{ if(offP.has(p.id)) return; const no=f=>off.has("prod:"+p.id+":"+f);
+    if(!no("specs")) (p.specs||[]).forEach(([k,v],i)=>{ if(!k||!v) return; const d=pad(allSpecVals(k).filter(x=>x!==v),3,anySpecVals.filter(x=>x!==v)); if(d.length<2) return;
       out.push({id:`s:${p.id}:${i}`,prod:p.id,topic:"spec",q:`${p.name} — ${k} คือเท่าไร?`,opts:[v,...d],ans:0,explain:`ดูได้ในแท็บสเปกของ ${p.name}`,link:"p-"+p.id}); });
-    (p.leds||[]).forEach((l,i)=>{ if(!l.name||!l.fix) return; const d=pad((p.leds||[]).filter(x=>x!==l).map(x=>x.fix).filter(x=>x!==l.fix),3,allLedFix.filter(x=>x!==l.fix)); if(d.length<2) return;
+    if(!no("leds")) (p.leds||[]).forEach((l,i)=>{ if(!l.name||!l.fix) return; const d=pad((p.leds||[]).filter(x=>x!==l).map(x=>x.fix).filter(x=>x!==l.fix),3,allLedFix.filter(x=>x!==l.fix)); if(d.length<2) return;
       out.push({id:`l:${p.id}:${i}`,prod:p.id,topic:"led",q:`ลูกค้าบอกว่า ${p.name} ไฟหน้าเครื่อง “${l.name}” ควรแนะนำอะไร?`,opts:[l.fix,...d],ans:0,explain:`ไฟ${l.name} = ${l.fix}`,link:"p-"+p.id}); });
-    (p.troubles||[]).forEach((t,i)=>{ const first=(t.lines||[])[0]; if(!t.title||!first) return; const d=pad((p.troubles||[]).filter(x=>x!==t).map(x=>(x.lines||[])[0]).filter(x=>x&&x!==first),3,allFirstSteps.filter(x=>x&&x!==first)); if(d.length<2) return;
+    if(!no("troubles")) (p.troubles||[]).forEach((t,i)=>{ const first=(t.lines||[])[0]; if(!t.title||!first) return; const d=pad((p.troubles||[]).filter(x=>x!==t).map(x=>(x.lines||[])[0]).filter(x=>x&&x!==first),3,allFirstSteps.filter(x=>x&&x!==first)); if(d.length<2) return;
       out.push({id:`t:${p.id}:${i}`,prod:p.id,topic:"fix",q:`${p.name} ลูกค้าแจ้ง “${t.title}” ขั้นแรกควรแนะนำอะไร?`,opts:[first,...d],ans:0,explain:(t.lines||[]).slice(0,3).map((l,j)=>`${j+1}. ${l}`).join(" "),link:"p-"+p.id}); });
-    if((p.conn||[]).length){ const v=p.conn.join(" + "); const d=pad(allConn.filter(x=>x!==v),3,["USB เท่านั้น","USB + Bluetooth","USB + Bluetooth + WiFi","Bluetooth เท่านั้น"].filter(x=>x!==v)); if(d.length>=2)
+    if(!no("head")&&(p.conn||[]).length){ const v=p.conn.join(" + "); const d=pad(allConn.filter(x=>x!==v),3,["USB เท่านั้น","USB + Bluetooth","USB + Bluetooth + WiFi","Bluetooth เท่านั้น"].filter(x=>x!==v)); if(d.length>=2)
       out.push({id:`c:${p.id}`,prod:p.id,topic:"conn",q:`${p.name} เชื่อมต่อได้แบบไหน?`,opts:[v,...d],ans:0,explain:"",link:"p-"+p.id}); }
   });
   /* ประกันของหมวด: ข้อใด “ถูกต้อง” — ตัวลวงจากหมวดอื่น */
-  S.cats.forEach(c=>(c.warranty||[]).forEach((w,i)=>{ const line=(w.lines||[])[0]; if(!w.title||!line) return;
+  if(on) S.cats.forEach(c=>(c.warranty||[]).forEach((w,i)=>{ const line=(w.lines||[])[0]; if(!w.title||!line||off.has("cat:"+c.id+":warranty")) return;
     const others=S.cats.filter(x=>x!==c).flatMap(x=>(x.warranty||[]).flatMap(y=>y.lines||[])).filter(x=>x!==line); const d=pad([],3,others); if(d.length<2) return;
     out.push({id:`cw:${c.id}:${i}`,prod:"",cat:c.id,topic:"war",q:`ประกันหมวด ${c.name} หัวข้อ “${w.title}” ข้อใดถูกต้อง?`,opts:[line,...d],ans:0,explain:(w.lines||[]).slice(0,3).join(" · "),link:"c-"+c.id}); }));
-  cmpQuiz(out);
-  S.L.quiz.forEach(r=>{ if(String(r.status||"")==="pending"||String(r.id||"").startsWith("ov:")) return; const opts=[r.a,r.b,r.c,r.d].map(x=>String(x||"").trim()).filter(Boolean); if(!r.q||opts.length<2) return;
+  if(on) cmpQuiz(out,offP,off);
+  S.L.quiz.forEach(r=>{ if(String(r.status||"")==="pending"||offP.has(String(r.prod||""))) return;
+    const isOv=String(r.id||"").startsWith("ov:"); if(isOv&&(on||String(r.status||"")==="hidden"||String(r.status||"")==="deleted")) return; /* ปิดระบบอัตโนมัติ = ข้อที่เขียนทับไว้ยังใช้ต่อแบบข้อปกติ */
+    const opts=[r.a,r.b,r.c,r.d].map(x=>String(x||"").trim()).filter(Boolean); if(!r.q||opts.length<2) return;
     const key=String(r.answer||"ก").trim().toLowerCase(); const ans=Math.max(0,{"ก":0,"ข":1,"ค":2,"ง":3,"a":0,"b":1,"c":2,"d":3,"1":0,"2":1,"3":2,"4":3}[key]??0);
-    out.push({id:"x:"+r.id,prod:String(r.prod||""),topic:"custom",q:String(r.q),opts,ans:Math.min(ans,opts.length-1),explain:String(r.explain||""),image:String(r.image||""),link:r.prod?"p-"+r.prod:"",custom:r}); });
+    out.push({id:(isOv?"":"x:")+r.id,prod:String(r.prod||""),topic:"custom",q:String(r.q),opts,ans:Math.min(ans,opts.length-1),explain:String(r.explain||""),image:String(r.image||""),link:r.prod?"p-"+r.prod:"",custom:r}); });
   return applyOverrides(out);
 }
-let _aq=null,_aqKey=""; function allQuiz(){ const k=S.prods.length+":"+S.L.quiz.length+":"+S.cats.length; if(!_aq||_aqKey!==k){ _aq=autoQuiz(); _aqKey=k; } return _aq; }
+let _aq=null,_aqKey=""; function allQuiz(){ const st=S.settings||{}; const k=S.prods.length+":"+S.L.quiz.length+":"+S.cats.length+":"+(st.autoQuiz||"")+":"+(st.noquiz||"")+":"+(st.quizOffProds||""); if(!_aq||_aqKey!==k){ _aq=autoQuiz(); _aqKey=k; } return _aq; }
 
 /* ---------- Flashcard: กำหนดการทบทวน ---------- */
 function cardState(id){ return (S.L.prog.cards||{})[id]; }
@@ -1345,7 +1356,7 @@ function learnForm(){
   const inp=(n,l,ph="",ta=false)=>`<label style="display:grid;gap:3px;font-size:13px;font-weight:600">${l}${ta?`<textarea name="${n}" placeholder="${esc(ph)}" style="font-family:var(--f-body);min-height:70px">${esc(f.d[n]||"")}</textarea>`:`<input name="${n}" placeholder="${esc(ph)}" value="${esc(f.d[n]||"")}">`}</label>`;
   const body=f.kind==="quiz"?`${inp("q","คำถาม","เช่น ES-9920 ไฟม่วงกระพริบหมายถึงอะไร?",true)}
     <div class="row2">${inp("a","ตัวเลือก ก")}${inp("b","ตัวเลือก ข")}</div><div class="row2">${inp("c","ตัวเลือก ค (เว้นได้)")}${inp("d","ตัวเลือก ง (เว้นได้)")}</div>
-    <div class="row2"><label style="display:grid;gap:3px;font-size:13px;font-weight:600">เฉลย<select name="answer">${["ก","ข","ค","ง"].map(k=>`<option ${String(f.d.answer||"ก")===k?"selected":""}>${k}</option>`).join("")}</select></label>${inp("image","รูปประกอบ (ID ไฟล์ Drive หรือลิงก์รูป)")}</div>
+    <div class="row2"><label style="display:grid;gap:3px;font-size:13px;font-weight:600">เฉลย<select name="answer">${["ก","ข","ค","ง"].map(k=>`<option ${String(f.d.answer||"ก")===k?"selected":""}>${k}</option>`).join("")}</select></label><label style="display:grid;gap:3px;font-size:13px;font-weight:600">รูปประกอบ<span style="display:flex;gap:6px"><input name="image" placeholder="อัปโหลด หรือวางลิงก์รูป" value="${esc(f.d.image||"")}" style="flex:1;min-width:0">${S.admin?`<label class="btn small" style="display:inline-flex;cursor:pointer;white-space:nowrap">${f.uploading?"กำลังอัปโหลด…":"⬆ อัปโหลดรูป"}<input type="file" accept="image/*" hidden data-lf-img></label>`:""}</span>${f.d.image?`<img src="${esc(imgUrl(f.d.image))}" alt="" style="max-height:120px;border-radius:8px;border:1px solid var(--line);justify-self:start">`:""}</label></div>
     ${inp("explain","คำอธิบายเฉลย","ทำไมข้อนี้ถึงถูก / ลิงก์วิธีแก้",true)}`
    :f.kind==="flow"?`${inp("title","ชื่อชุดจำลอง","เช่น ตั้งค่า WiFi ES-9920UW")}<label style="display:grid;gap:3px;font-size:13px;font-weight:600">ขั้นตอน (รูปแบบด้านล่าง)<textarea name="steps" style="font-family:var(--f-mono);font-size:12.5px;min-height:260px">${esc(f.d.steps||FLOW_TEMPLATE)}</textarea></label><div class="hint" style="white-space:pre-wrap">## รหัส | ชื่อขั้น  → ขึ้นขั้นใหม่
 บรรทัดธรรมดา = คำอธิบาย · img: รูป · hint: คำใบ้ (โหมดฝึก)
@@ -1377,6 +1388,13 @@ async function learnDel(kind,id){
 }
 
 /* ---------- เหตุการณ์ของศูนย์เรียนรู้ ---------- */
+async function lfImgUpload(file){
+  const f=S.lf, root=$("#lf"); if(!f||!root) return; root.querySelectorAll("[name]").forEach(el=>{ if(el.type==="checkbox") return; f.d[el.name]=el.value; }); f.notify=root.querySelector("[name=notify]").checked;
+  f.uploading=true; render();
+  try{ const x=await readAsB64(file,false); const r=await run("uploadFile",S.pw,x.name,x.mime,x.b64); f.d.image=r.id; flash("อัปโหลดรูปแล้ว"); }catch(err){ flash("อัปโหลดไม่สำเร็จ: "+errMsg(err)); }
+  f.uploading=false; render();
+}
+document.addEventListener("change",ev=>{ if(ev.target.matches("[data-lf-img]")&&ev.target.files.length) lfImgUpload(ev.target.files[0]); });
 document.addEventListener("submit",ev=>{
   if(ev.target.id==="learnUser"&&!(S.users||[]).length){ ev.preventDefault(); const n=$("#lu").value.trim(); if(!n){ flash("ใส่ชื่อก่อนครับ"); return; } S.L.user=n; try{localStorage.setItem("ep-user",n)}catch(e){} S.L.loaded=false; S.L.cs=null; S.L.qs=null; render(); }
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
@@ -2212,8 +2230,8 @@ async function cmpCopy(){
   S.view={kind:"text",text,label:ok?"คัดลอกแล้ว — วางส่งลูกค้าได้เลย":"ข้อความส่งลูกค้า (กดค้างเพื่อคัดลอก)"}; render();
 }
 /* คำถามอัตโนมัติ "รุ่นไหนต่างตรงไหน" (เรียกจาก autoQuiz) */
-function cmpQuiz(out){
-  S.cats.forEach(c=>{ const ps=prodsOf(c.id);
+function cmpQuiz(out,offP,off){ offP=offP||new Set(); off=off||new Set();
+  S.cats.forEach(c=>{ const ps=prodsOf(c.id).filter(p=>!offP.has(p.id)&&!off.has("prod:"+p.id+":specs"));
     for(let i=0;i<ps.length-1;i++){ const a=ps[i],b=ps[i+1]; let n=0;
       (a.specs||[]).forEach(([k,v])=>{ if(n>=3) return; const w=whyOf(k,c); if(!w.dir) return;
         const v2=((b.specs||[]).find(s=>s[0]===k)||[])[1]; if(/[×x]/i.test(v+v2)) return; const x=numOf(v),y=numOf(v2); if(x===null||y===null||x===y) return; n++;
@@ -2343,6 +2361,7 @@ function settingsPanel(){
   return `<div class="sec"><h3>ตั้งค่าศูนย์เรียนรู้</h3><div style="padding:12px 14px;display:grid;gap:10px;font-size:14px">
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b>ศูนย์เรียนรู้:</b><span class="chip ${open?"ok":"warn"}" style="${open?"":"background:var(--warn-soft);color:var(--warn);border-color:transparent"}">${open?"เปิดอยู่":"ปิดอยู่"}</span><button class="btn small ${open?"danger":"primary"}" data-set-learn="${open?"0":"1"}">${open?"ปิดศูนย์เรียนรู้":"เปิดศูนย์เรียนรู้"}</button><span class="soft">ปิดแล้วพนักงานจะเห็นข้อความด้านล่างแทน (หลังบ้านยังเข้าได้ปกติ)</span></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="set-msg" value="${esc(st.learnMsg||"")}" placeholder="ข้อความตอนปิด เช่น เปิดให้สอบวันศุกร์ 10:00–12:00" style="flex:1;min-width:220px;background:var(--paper-2);border:1px solid var(--line);border-radius:7px;padding:7px 10px"><button class="btn small" data-set-msg>บันทึกข้อความ</button></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px"><b>ข้อสอบ/Flashcard อัตโนมัติจากข้อมูลสินค้า:</b><span class="chip ${st.autoQuiz==="0"?"":"ok"}">${st.autoQuiz==="0"?"ปิด · ใช้เฉพาะข้อที่ทีมเขียนเอง":"เปิด"}</span><button class="btn small" data-set-autoquiz="${st.autoQuiz==="0"?"1":"0"}">${st.autoQuiz==="0"?"เปิดระบบอัตโนมัติ":"ปิดระบบอัตโนมัติ"}</button><span class="soft">ปิดแล้วเหลือเฉพาะข้อที่ทีมเพิ่มเองและข้อที่เขียนทับไว้ · ปิดเฉพาะบางส่วนได้ตอนกด ✎ แก้ข้อมูลสินค้า</span></div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px"><b>สรุปรายสัปดาห์เข้าไลน์:</b><span class="chip ${st.weekly==="1"?"ok":""}">${st.weekly==="1"?"เปิด · ทุกจันทร์ 8:30":"ปิด"}</span><button class="btn small" data-set-weekly="${st.weekly==="1"?"0":"1"}">${st.weekly==="1"?"ปิดสรุปรายสัปดาห์":"เปิดสรุปรายสัปดาห์"}</button><button class="btn small" data-weekly-now>${lIcon("send")} ส่งสรุปตอนนี้</button><span class="soft">ใครยังไม่เรียนเกิน 7 วัน · บทเรียนเลยกำหนด · อันดับ 3 คนแรก · ความรู้รอตรวจ</span></div>
   </div></div>`;
 }
@@ -2427,7 +2446,7 @@ function overrides(){ const o={}; (S.L.quiz||[]).forEach(r=>{ const id=String(r.
 /* ใช้ใน autoQuiz: ซ่อน/เขียนทับข้อที่ระบบสร้าง */
 function applyOverrides(out){
   const ov=overrides(); if(!Object.keys(ov).length) return out;
-  return out.filter(q=>{ const r=ov[q.id]; if(!r) return true; if(String(r.status||"")==="hidden") return false;
+  return out.filter(q=>{ const r=ov[q.id]; if(!r) return true; if(String(r.status||"")==="hidden"||String(r.status||"")==="deleted") return false;
     const opts=[r.a,r.b,r.c,r.d].map(x=>String(x||"").trim()).filter(Boolean); if(r.q&&opts.length>=2){ const key=String(r.answer||"ก").trim().toLowerCase(); q.q=String(r.q); q.opts=opts; q.ans=Math.min(Math.max(0,{"ก":0,"ข":1,"ค":2,"ง":3,"a":0,"b":1,"c":2,"d":3}[key]??0),opts.length-1); q.explain=String(r.explain||""); if(r.image) q.image=String(r.image); q.override=r; }
     return true; });
 }
@@ -2436,7 +2455,7 @@ function viewBank(){
   if(!S.admin) return learnNav("bank")+`<div class="wrap state"><p>คลังข้อสอบสำหรับหลังบ้าน — กด "หลังบ้าน" ใส่รหัสก่อนครับ</p></div>`;
   if(!S.L.loaded){ if(!S.L.err) learnLoad(); return learnNav("bank")+`<div class="wrap state">${S.L.err?`<p>โหลดไม่สำเร็จ: ${esc(S.L.err)}</p><button class="btn" data-learn-reload>ลองใหม่</button>`:`<p>กำลังโหลด…</p>`}</div>`; }
   const B=S.B||(S.B={q:"",prod:"",src:"all",n:60}); const ov=overrides(); const wc=wrongCounts();
-  const all=allQuiz(); const hidden=Object.values(ov).filter(r=>String(r.status||"")==="hidden");
+  const all=allQuiz(); const hidden=Object.values(ov).filter(r=>String(r.status||"")==="hidden"); const offList=qOffProds().filter(x=>!x.perm&&prodById(x.id));
   let list=all.map(q=>({q,src:qSource(q),wrong:wc[q.q.slice(0,60)]||0,kind:q.override?"override":q.custom?"custom":"auto"}));
   if(B.src==="override") list=list.filter(x=>x.kind==="override"); else if(B.src==="custom") list=list.filter(x=>x.kind==="custom"); else if(B.src==="auto") list=list.filter(x=>x.kind==="auto"); else if(B.src==="wrong") list=list.filter(x=>x.wrong>0).sort((a,b)=>b.wrong-a.wrong); else if(B.src==="img") list=list.filter(x=>x.q.image);
   if(B.prod) list=list.filter(x=>x.q.prod===B.prod||(!x.q.prod&&x.q.cat===(prodById(B.prod)||{}).cat));
@@ -2449,7 +2468,7 @@ function viewBank(){
    <div class="side" style="margin-bottom:12px"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
      <label class="search" style="flex:1;min-width:220px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="bank-q" placeholder="ค้นหาคำถาม / ตัวเลือก / ชื่อรุ่น" value="${esc(B.q)}" autocomplete="off"></label>
      <select id="bank-prod" style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px">${prodOpts}</select>
-     <button class="btn small primary" data-learn-add="quiz">+ เพิ่มคำถาม</button></div>
+     <button class="btn small primary" data-learn-add="quiz">+ เพิ่มคำถาม</button>${B.prod?`<button class="btn small danger" data-bank-prod-off="${esc(B.prod)}">${S.lfDel==="prod|"+B.prod?"ยืนยันลบข้อสอบทั้งรุ่น "+esc(prodName(B.prod))+"?":"ลบข้อสอบทั้งรุ่นนี้"}</button>`:""}</div>
      <div style="display:flex;gap:6px;flex-wrap:wrap">${srcs.map(([k,l])=>`<button class="btn small ${B.src===k?"primary":""}" data-bank-src="${k}">${l}</button>`).join("")}</div>
      <span class="soft">ข้อที่ระบบสร้างจากข้อมูลสินค้า: ถ้าข้อมูลผิด กด <b>แก้ที่ต้นทาง</b> จะพาไปแก้ในหน้าสินค้า (ข้อสอบและหน้าสินค้าเปลี่ยนพร้อมกัน) · ถ้าอยากเปลี่ยนแค่คำถามข้อนี้ กด <b>เขียนทับ</b> · ไม่อยากให้ออกสอบ กด <b>ลบ</b> (กู้คืนได้จากรายการด้านล่าง)</span></div>
    ${shown.length?`<div style="display:grid;gap:8px">${shown.map(({q,src,wrong,kind})=>{ const o=qOrigin(q); return `<div class="sec" style="margin:0"><div style="padding:10px 14px;display:grid;gap:6px">
@@ -2460,7 +2479,8 @@ function viewBank(){
      <div style="display:flex;gap:6px;flex-wrap:wrap">${kind==="custom"?`<button class="btn small" data-learn-edit="quiz|${esc(q.custom.id)}">แก้ไข</button><button class="btn small danger" data-learn-del="quiz|${esc(q.custom.id)}">${S.lfDel==="quiz|"+q.custom.id?"ยืนยันลบ?":"ลบ"}</button>`
        :`${o?`<button class="btn small" data-bank-origin="${esc(q.id)}">แก้ที่ต้นทาง (${FL[o[2]]||o[2]})</button>`:""}<button class="btn small" data-bank-override="${esc(q.id)}">${kind==="override"?"แก้ที่เขียนทับ":"เขียนทับ"}</button>${kind==="override"?`<button class="btn small" data-bank-restore="${esc(q.id)}">กลับไปใช้ของระบบ</button>`:""}<button class="btn small danger" data-bank-hide="${esc(q.id)}">${S.lfDel==="hide|"+q.id?"ยืนยันลบ?":"ลบ"}</button>`}</div>
    </div></div>`; }).join("")}</div>${list.length>shown.length?`<div style="text-align:center;margin-top:12px"><button class="btn" data-bank-more>แสดงเพิ่ม (${list.length-shown.length} ข้อ)</button></div>`:""}`:`<div class="empty">ไม่พบคำถามที่ตรงเงื่อนไข</div>`}
-   ${hidden.length?`<details class="trouble" style="margin-top:14px"><summary>ข้อที่ลบไว้ ${hidden.length} ข้อ (กู้คืนได้)</summary><div style="padding:8px 14px;display:grid;gap:6px;font-size:14px">${hidden.map(r=>`<div style="display:flex;gap:8px;align-items:center"><span style="flex:1;min-width:0">${esc(r.q)}${r.prod?` <span class="soft">· ${esc(prodName(r.prod))}</span>`:""}</span><button class="btn small" data-bank-restore="${esc(String(r.id).slice(3))}">กู้คืน</button></div>`).join("")}</div></details>`:""}
+   ${offList.length?`<div class="sec warn" style="margin-top:14px"><h3>รุ่นที่ลบข้อสอบออกทั้งหมด (${offList.length})</h3><div style="padding:10px 14px;display:grid;gap:6px;font-size:14px">${offList.map(x=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:160px"><b>${esc(prodName(x.id))}</b> <span class="soft">· ข้อสอบและ Flashcard ของรุ่นนี้ถูกซ่อนทั้งหมด</span></span><button class="btn small" data-bank-prod-on="${esc(x.id)}">กู้คืน</button><button class="btn small danger" data-bank-prod-perm="${esc(x.id)}">${S.lfDel==="perm|"+x.id?"ยืนยันลบถาวร?":"ลบถาวร"}</button></div>`).join("")}</div></div>`:""}
+   ${hidden.length?`<details class="trouble" style="margin-top:14px"${String(S.lfDel||"").startsWith("qperm|")?" open":""}><summary>ข้อที่ลบไว้ ${hidden.length} ข้อ (กู้คืนได้)</summary><div style="padding:8px 14px;display:grid;gap:6px;font-size:14px">${hidden.map(r=>`<div style="display:flex;gap:8px;align-items:center"><span style="flex:1;min-width:0">${esc(r.q)}${r.prod?` <span class="soft">· ${esc(prodName(r.prod))}</span>`:""}</span><button class="btn small" data-bank-restore="${esc(String(r.id).slice(3))}">กู้คืน</button><button class="btn small danger" data-bank-perm="${esc(String(r.id).slice(3))}">${S.lfDel==="qperm|"+String(r.id).slice(3)?"ยืนยัน?":"ลบถาวร"}</button></div>`).join("")}</div></details>`:""}
    <div style="height:40px"></div></div>`;
 }
 function bankOrigin(qid){ const q=allQuiz().find(x=>x.id===qid); const o=q&&qOrigin(q); if(!o) return; const [kind,id,field]=o; go(kind==="prod"?"p-"+id:"c-"+id); if(field==="specs"||field==="head") S.tab="spec"; if(field==="leds"||field==="troubles") S.tab="fix"; if(field==="warranty") S.tab="war"; render(); setTimeout(()=>{ ieOpen(kind,id,field); const el=$("#ie"); if(el) el.scrollIntoView({behavior:"smooth",block:"center"}); },50); }
@@ -2468,6 +2488,7 @@ function bankOverride(qid){ const q=allQuiz().find(x=>x.id===qid); if(!q) return
   S.lf={kind:"quiz",d:{id:"ov:"+qid,prod:q.prod||"",topic:q.topic,q:q.q,a:q.opts[q.ans],b:others[0]||"",c:others[1]||"",d:others[2]||"",answer:"ก",explain:q.explain||"",image:q.image||"",status:"override"},notify:false}; render(); }
 async function bankHide(qid){ const q=allQuiz().find(x=>x.id===qid); if(!q) return; S.lfDel=null;
   try{ await run("saveRow",S.pw,"quiz",{id:"ov:"+qid,prod:q.prod||"",topic:q.topic,q:q.q.slice(0,120),status:"hidden"},{send:false,note:""}); flash("ลบแล้ว (กู้คืนได้ด้านล่าง)"); await learnLoad(true); }catch(err){ flash("ไม่สำเร็จ: "+errMsg(err)); } }
+async function bankPerm(qid){ try{ const r=overrides()[qid]; await run("saveRow",S.pw,"quiz",Object.assign({},r||{id:"ov:"+qid},{status:"deleted"}),{send:false,note:""}); flash("ลบถาวรแล้ว"); await learnLoad(true); }catch(err){ flash("ไม่สำเร็จ: "+errMsg(err)); } }
 async function bankRestore(qid){ try{ await run("deleteRow",S.pw,"quiz","ov:"+qid,{send:false,note:""}); flash("กลับไปใช้ข้อของระบบแล้ว"); await learnLoad(true); }catch(err){ flash("ไม่สำเร็จ: "+errMsg(err)); } }
 
 /* ---------- นักเรียน (หลังบ้าน) ---------- */
@@ -2508,10 +2529,15 @@ document.addEventListener("submit",ev=>{
 document.addEventListener("input",ev=>{ if(ev.target.id==="bank-q"&&S.B){ S.B.q=ev.target.value; S.B.n=60; const pos=ev.target.selectionStart; render(); const n=$("#bank-q"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } } });
 document.addEventListener("change",ev=>{ if(ev.target.id==="bank-prod"&&S.B){ S.B.prod=ev.target.value; S.B.n=60; render(); } if(ev.target.matches("[data-plan-tick]")){ const p=S.L.prog; p.onboard=p.onboard||{}; if(!p.onboardStart) p.onboardStart=planState().start; if(ev.target.checked) p.onboard[ev.target.dataset.planTick]=Date.now(); else delete p.onboard[ev.target.dataset.planTick]; progSave(); render(); } });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-set-learn],[data-set-msg],[data-set-weekly],[data-weekly-now],[data-bank-src],[data-bank-more],[data-bank-origin],[data-bank-override],[data-bank-hide],[data-bank-restore],[data-user-reload],[data-user-add],[data-user-edit],[data-user-del],[data-user-cancel],[data-user-pin],[data-plan-day]"); if(!t) return; const d=t.dataset;
+  const t=ev.target.closest("[data-set-learn],[data-set-msg],[data-set-weekly],[data-set-autoquiz],[data-bank-prod-off],[data-bank-prod-on],[data-bank-prod-perm],[data-bank-perm],[data-weekly-now],[data-bank-src],[data-bank-more],[data-bank-origin],[data-bank-override],[data-bank-hide],[data-bank-restore],[data-user-reload],[data-user-add],[data-user-edit],[data-user-del],[data-user-cancel],[data-user-pin],[data-plan-day]"); if(!t) return; const d=t.dataset;
   if(d.setLearn!==undefined){ setLearnOpen(d.setLearn); render(); return; }
   if(d.setMsg!==undefined){ setSettingUI("learnMsg",($("#set-msg")||{}).value||""); return; }
   if(d.setWeekly!==undefined){ setSettingUI("weekly",d.setWeekly).then(()=>render()); return; }
+  if(d.setAutoquiz!==undefined){ setSettingUI("autoQuiz",d.setAutoquiz).then(()=>{ _aq=null; render(); }); return; }
+  if(d.bankProdOff!==undefined){ if(S.lfDel!=="prod|"+d.bankProdOff){ S.lfDel="prod|"+d.bankProdOff; render(); return; } S.lfDel=null; const l=qOffProds().filter(x=>x.id!==d.bankProdOff); l.push({id:d.bankProdOff}); setSettingUI("quizOffProds",JSON.stringify(l)).then(()=>{ _aq=null; S.B.prod=""; render(); }); return; }
+  if(d.bankProdOn!==undefined){ setSettingUI("quizOffProds",JSON.stringify(qOffProds().filter(x=>x.id!==d.bankProdOn))).then(()=>{ _aq=null; render(); }); return; }
+  if(d.bankProdPerm!==undefined){ if(S.lfDel!=="perm|"+d.bankProdPerm){ S.lfDel="perm|"+d.bankProdPerm; render(); return; } S.lfDel=null; setSettingUI("quizOffProds",JSON.stringify(qOffProds().map(x=>x.id===d.bankProdPerm?{id:x.id,perm:1}:x))).then(()=>render()); return; }
+  if(d.bankPerm!==undefined){ if(S.lfDel!=="qperm|"+d.bankPerm){ S.lfDel="qperm|"+d.bankPerm; render(); return; } S.lfDel=null; bankPerm(d.bankPerm); return; }
   if(d.weeklyNow!==undefined){ run("sendWeeklyNow",S.pw).then(txt=>{ S.view={kind:"text",text:txt,label:"ส่งเข้าไลน์ทีมแล้ว"}; render(); }).catch(err=>flash("ส่งไม่สำเร็จ: "+errMsg(err))); return; }
   if(d.bankSrc!==undefined){ S.B.src=d.bankSrc; S.B.n=60; render(); return; }
   if(d.bankMore!==undefined){ S.B.n+=60; render(); return; }
