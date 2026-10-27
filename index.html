@@ -283,6 +283,7 @@ body{margin:0}
 .ied input,.ied select,.ied textarea{background:var(--paper-2);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;font-size:14px}
 .ied textarea{min-height:72px;line-height:1.5;resize:vertical;font-family:var(--f-body)}
 .ied label{font-size:12px;color:var(--muted);display:grid;gap:3px}
+.ied .ck label{display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-size:13px;white-space:nowrap}.ied .ck input[type=checkbox],.ied .ck input[type=radio]{width:auto;margin:0}
 .ied .kv{display:grid;grid-template-columns:1fr 1.5fr 32px;gap:6px;align-items:center}
 .ied .kv3{display:grid;grid-template-columns:1fr 1.3fr 1.6fr 32px;gap:6px;align-items:center}
 .ied .ies{border:1px solid var(--line);border-radius:8px;padding:8px;display:grid;gap:6px;background:var(--paper)}
@@ -490,6 +491,7 @@ function setRoute(h){
   if(h.startsWith("c-")) S.route={v:"cat",id:h.slice(2)};
   else if(h.startsWith("p-")) S.route={v:"prod",id:h.slice(2)};
   else if(h==="compare") S.route={v:"compare"};
+  else if(h==="warranty") S.route={v:"warranty"};
   else if(h==="learn"||h==="learn-cards"||h==="learn-quiz"||h==="learn-sim"||h==="learn-role"||h==="learn-timed"||h==="learn-cert"||h==="learn-dash"||h==="learn-board"||h==="learn-bank"||h==="learn-users"||h==="learn-plan"||h==="apps") S.route={v:h};
   else S.route={v:"home"};
 }
@@ -518,6 +520,7 @@ function render(){
   else if(S.route.v==="learn") main=viewLearn();
   else if(S.route.v==="learn-bank") main=viewBank();
   else if(S.route.v==="apps") main=viewApps();
+  else if(S.route.v==="warranty") main=viewWarranty();
   else if(S.route.v==="learn-users") main=viewUsers();
   else if(S.route.v==="learn-plan") main=viewPlan();
   else if(S.route.v==="learn-cards") main=viewCards();
@@ -538,6 +541,7 @@ function render(){
     <label class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="ค้นหารุ่น เช่น 9920, สแกนเนอร์, ลิ้นชัก, ไฟแดง…" value="${esc(S.q)}" autocomplete="off"></label>
     <button class="btn ${S.route.v.startsWith("learn")?"primary":""}" data-go="learn">ศูนย์เรียนรู้</button>
+    <button class="btn ${S.route.v==="warranty"?"primary":""}" data-go="warranty">ประกัน</button>
     <button class="btn ${S.route.v==="apps"?"primary":""}" data-go="apps">โหลดแอป</button>
     ${S.canEdit?`<button class="btn ${S.admin?"admin-on":""}" id="adminToggle">${S.admin?"กำลังแก้ไข · ปิด":"หลังบ้าน"}</button>`:""}
   </div></header>
@@ -553,7 +557,7 @@ function render(){
     <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn small" data-login-close>ยกเลิก</button><button class="btn small primary">เข้าสู่ระบบ</button></div></form>`:""}
   ${S.editing?viewEditor():""}
   ${viewer()}
-  ${learnForm()}${draftForm()}
+  ${learnForm()}${draftForm()}${quizPickForm()}
   ${caseForm()}
   ${assignForm()}
   ${S.toast?`<div class="toast" role="status">${esc(S.toast)}</div>`:""}`;
@@ -643,6 +647,23 @@ function secBlock(s,cls=""){
 }
 function linkify(t){
   return esc(t).replace(/(https?:\/\/[^\s<]+)/g,u=>`<a href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="${u}">${u.length>48?u.slice(0,46)+"…":u}</a>`);
+}
+
+/* ---------- หน้ารวมประกัน: เห็นเงื่อนไขทุกหมวด/ทุกรุ่นในที่เดียว แก้แล้วเลือกนำไปใส่รุ่นอื่นได้ ---------- */
+function viewWarranty(){
+  const cats=[...S.cats].sort((a,b)=>(a.order??99)-(b.order??99));
+  const nProd=S.prods.filter(p=>(p.warranty||[]).length).length;
+  return `<div class="wrap"><button class="back" data-go="">‹ หน้าแรก</button>
+   <div class="section-h"><h2>ประกัน & เงื่อนไขหลังการขาย</h2><span class="soft">เงื่อนไขร่วมของแต่ละหมวด · รุ่นที่มีเงื่อนไขเฉพาะ ${nProd} รุ่น</span></div>
+   ${S.admin?`<div class="hint" style="margin-bottom:12px">กด ✎ ที่บล็อกไหนก็ได้ แก้เสร็จเปิด "นำส่วนนี้ไปใส่รุ่นอื่นด้วย" แล้วติ๊กหมวด/รุ่นที่ต้องการ จะอัปเดตทีเดียวทั้งหมด (เลือกได้ว่าแทนที่ หรือเพิ่มต่อท้ายของเดิม)</div>`:""}
+   ${cats.map(c=>{ const ps=prodsOf(c.id); const own=ps.filter(p=>(p.warranty||[]).length); const shared=ps.length-own.length;
+     return `<div class="media-group" style="margin-bottom:18px"><h3 style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${esc(c.name)} <span class="soft" style="font-weight:400;font-size:13px">· เงื่อนไขร่วมใช้กับ ${shared} รุ่น${own.length?` · เงื่อนไขเฉพาะ ${own.length} รุ่น`:""}</span></h3>
+       ${edWrap("cat",c.id,"warranty",(c.warranty||[]).length?`<div class="secs">${(c.warranty||[]).map(sec=>secBlock(sec)).join("")}</div>`:`<div class="empty">หมวดนี้ยังไม่มีเงื่อนไขร่วม${S.admin?" — กด ✎ เพื่อเพิ่ม":""}</div>`)}
+       ${own.map(p=>`<div style="margin:10px 0 0 12px;border-left:3px solid var(--line);padding-left:12px"><div style="font-weight:700;margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mono">${esc(p.name)}</span><span class="soft" style="font-weight:400;font-size:12.5px">เงื่อนไขเฉพาะรุ่น (ใช้แทนของหมวด)</span><button class="btn small" data-go="p-${esc(p.id)}">ดูรุ่น ›</button></div>
+         ${edWrap("prod",p.id,"warranty",`<div class="secs">${(p.warranty||[]).map(sec=>secBlock(sec)).join("")}</div>`)}</div>`).join("")}
+       ${S.admin&&shared?`<details style="margin:8px 0 0 12px;font-size:13px"><summary class="soft">รุ่นที่ใช้เงื่อนไขร่วมของหมวด (${shared}) — กดเพื่อเพิ่มเงื่อนไขเฉพาะรุ่น</summary><div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">${ps.filter(p=>!(p.warranty||[]).length).map(p=>`<button class="btn small" data-ie="prod|${esc(p.id)}|warranty">✎ ${esc(p.name)}</button>`).join("")}</div></details>`:""}
+     </div>`; }).join("")}
+   <div style="height:40px"></div></div>`;
 }
 
 function viewProd(id){
@@ -931,8 +952,16 @@ function ieEditor(){
     <div style="display:flex;gap:6px"><input name="imgurl" placeholder="หรือวางลิงก์รูปจากเว็บ https://…" value="${esc(S.ie.imgurl||"")}"><button type="button" class="btn small" data-ie-addurl style="white-space:nowrap">+ เพิ่มจากลิงก์</button></div>
     <span class="hint">รูปแรกคือรูปหลัก ลากไม่ได้แต่ลบแล้วเพิ่มใหม่เพื่อเรียงได้ · ใส่กี่รูปก็ได้ (แนะนำไม่เกิน 8)</span>`;
   const hint = field==="warranty"||field==="care" ? `<span class="hint">เว้นว่างทั้งหมด = ใช้เงื่อนไขร่วมของหมวด</span>` : field==="why" ? `<span class="hint">หัวข้อ = ชื่อสเปก (เช่น ความเร็ว) · ค่า = คำอธิบาย | hi หรือ lo (ค่าสูง/ต่ำกว่าดีกว่า) | ลูกค้าแบบไหนควรเลือก — เขียนเฉพาะที่อยากอธิบายเอง ที่เหลือระบบอธิบายให้อัตโนมัติ</span>` : "";
+  const copyable=!["head","chead","images"].includes(t); const C=S.ie.copyTo||[]; const cats=[...S.cats].sort((a,b)=>(a.order??99)-(b.order??99));
+  const tgtCats=(S.ie.kind==="cat"||field==="warranty")?cats.filter(c=>!(S.ie.kind==="cat"&&c.id===S.ie.id)):[];
+  const tgtProds=(S.ie.kind==="prod"||field==="warranty")?cats.map(c=>[c,prodsOf(c.id).filter(p=>!(S.ie.kind==="prod"&&p.id===S.ie.id))]).filter(x=>x[1].length):[];
+  const copyBox=copyable?`<details class="trouble" ${C.length?"open":""} style="margin-top:6px"><summary>📤 นำส่วนนี้ไปใส่รุ่นอื่นด้วย ${C.length?`(เลือกแล้ว ${C.length})`:""}</summary><div class="ck" style="padding:8px 12px;display:grid;gap:8px;font-size:13px">
+      <div style="display:flex;gap:12px;flex-wrap:wrap"><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="copymode" value="append" ${S.ie.copyMode!=="replace"?"checked":""}>เพิ่มต่อท้ายของเดิม (ไม่ลบที่รุ่นนั้นมีอยู่)</label><label style="display:flex;gap:6px;align-items:center"><input type="radio" name="copymode" value="replace" ${S.ie.copyMode==="replace"?"checked":""}>แทนที่ทั้งส่วน</label></div>
+      ${tgtCats.length?`<div><b>หมวด (เงื่อนไขร่วมของหมวด)</b><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">${tgtCats.map(c=>`<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" name="copyto" value="cat:${esc(c.id)}" ${C.includes("cat:"+c.id)?"checked":""}>${esc(c.name)}</label>`).join("")}</div></div>`:""}
+      ${tgtProds.map(([c,ps])=>`<div><b>${esc(c.name)}</b> <button type="button" class="btn small" data-ie-copyall="${esc(c.id)}">เลือกทั้งหมวด</button><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">${ps.map(p=>`<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" name="copyto" value="prod:${esc(p.id)}" ${C.includes("prod:"+p.id)?"checked":""}>${esc(p.name)}</label>`).join("")}</div></div>`).join("")}
+      <span class="soft">กดบันทึกครั้งเดียว ระบบจะอัปเดตรุ่นที่ติ๊กทั้งหมดให้ (ส่งไลน์สรุปรวมครั้งเดียว)</span></div></details>`:"";
   const qkey=S.ie.kind+":"+S.ie.id+":"+field; const qsrc=["specs","leds","troubles","head","warranty"].includes(field)&&(S.ie.kind==="prod"||field==="warranty");
-  return `<div class="ied" id="ie"><div class="ttl">แก้ไข · ${FL[field]}</div>${body}${hint}
+  return `<div class="ied" id="ie"><div class="ttl">แก้ไข · ${FL[field]}</div>${body}${hint}${copyBox}
     ${qsrc?`<label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink);background:var(--amber-soft);border-radius:8px;padding:6px 10px"><input type="checkbox" name="noquiz" ${S.ie.noquiz===undefined?(qOffSet().has(qkey)?"checked":""):(S.ie.noquiz?"checked":"")}>ไม่ต้องสร้างข้อสอบ/Flashcard อัตโนมัติจากส่วนนี้ <span class="soft">(ข้อที่ระบบเคยสร้างจากส่วนนี้จะหายไป)</span></label>`:""}
     <div class="bar"><label><input type="checkbox" name="notify" ${S.ie.notify?"checked":""}>ส่งสรุปที่แก้เข้าไลน์</label><input type="text" name="note" placeholder="บอกทีมสั้น ๆ ว่าแก้อะไร (ไม่ใส่ก็ได้)" value="${esc(S.ie.note)}">
       <button type="button" class="btn small" data-ie-preview>ดูตัวอย่างข้อความ</button><button type="button" class="btn small" data-ie-cancel>ยกเลิก</button><button type="button" class="btn small primary" data-ie-save ${saving?"disabled":""}>${saving?"กำลังบันทึก…":"บันทึก"}</button></div></div>`;
@@ -944,6 +973,7 @@ function ieCollect(){
   const nb=root.querySelector('[name=notify]'); if(nb) S.ie.notify=nb.checked;
   const nt=root.querySelector('[name=note]'); if(nt) S.ie.note=nt.value;
   const nq=root.querySelector('[name=noquiz]'); if(nq) S.ie.noquiz=nq.checked;
+  const cm=root.querySelector('[name=copymode]:checked'); if(cm) S.ie.copyMode=cm.value; if(root.querySelector('[name=copyto]')) S.ie.copyTo=all('[name=copyto]:checked').map(x=>x.value);
   const iu=root.querySelector('[name=imgurl]'); if(iu) S.ie.imgurl=iu.value;
   const v=n=>(root.querySelector(`[name=${n}]`)||{}).value??"";
   if(t==="head") S.ie.draft={name:v("name").trim(),tagline:v("tagline").trim(),conn:v("conn"),badges:v("badges"),volume:v("volume").trim(),order:Number(v("order"))||10};
@@ -988,9 +1018,21 @@ async function ieSave(){
   const row=kind==="prod"?prodToRow(obj):catToRow(obj);
   S.ie.saving=true; render();
   try{ const ie=S.ie; applyData(await run("saveRow",S.pw,kind,row,{send:ie.notify!==false,note:ie.note||""}));
+    let msg="บันทึกแล้ว"; if((ie.copyTo||[]).length){ const n=await ieCopyTo(ie,obj[ie.field]); msg=`บันทึกแล้ว และนำไปใส่อีก ${n} รายการ`; }
     if(ie.noquiz!==undefined){ const key=ie.kind+":"+ie.id+":"+ie.field; const set=qOffSet(); if(ie.noquiz!==set.has(key)){ if(ie.noquiz) set.add(key); else set.delete(key); await setSettingUI("noquiz",JSON.stringify([...set])); } }
-    S.ie=null; _aq=null; flash("บันทึกแล้ว"); }
+    S.ie=null; _aq=null; flash(msg); }
   catch(err){ S.ie.saving=false; flash("บันทึกไม่สำเร็จ: "+errMsg(err)); }
+}
+/* นำค่าของส่วนที่แก้ไปใส่หมวด/รุ่นอื่นตามที่ติ๊ก (บันทึกเป็นชุดเดียว) */
+async function ieCopyTo(ie,value){
+  const t=FT[ie.field]; const merge=(old,v)=>{ if(ie.copyMode==="replace"||!Array.isArray(old)||!old.length) return v; if(t==="kv"){ const keys=new Set(v.map(x=>x[0])); return old.filter(x=>!keys.has(x[0])).concat(v); } if(t==="secs"){ const titles=new Set(v.map(x=>x.title)); return old.filter(x=>!titles.has(x.title)).concat(v); } if(t==="leds"){ const names=new Set(v.map(x=>x.name)); return old.filter(x=>!names.has(x.name)).concat(v); } if(t==="media"){ const urls=new Set(v.map(x=>x.url)); return old.filter(x=>!urls.has(x.url)).concat(v); } if(t==="variants"){ const codes=new Set(v.map(x=>x.code)); return old.filter(x=>!codes.has(x.code)).concat(v); } return old.concat(v.filter(x=>!old.includes(x))); };
+  const prodRows=[],catRows=[]; const names=[];
+  ie.copyTo.forEach(k=>{ const [kind,id]=k.split(":"); const base=kind==="prod"?prodById(id):catById(id); if(!base) return; const o=JSON.parse(JSON.stringify(base)); o[ie.field]=merge(o[ie.field],JSON.parse(JSON.stringify(value))); names.push(o.name); (kind==="prod"?prodRows:catRows).push(kind==="prod"?prodToRow(o):catToRow(o)); });
+  if(prodRows.length) await run("saveRows",S.pw,"prod",prodRows);
+  if(catRows.length) await run("saveRows",S.pw,"cat",catRows);
+  applyData(await run("getData"));
+  if(ie.notify!==false&&names.length){ try{ await run("notifyTeam",S.pw,`[อัปเดต${FL[ie.field]}] นำไปใส่ ${names.length} รายการ: ${names.join(", ")}${ie.note?"\nหมายเหตุ: "+ie.note:""}`); }catch(e){} }
+  return names.length;
 }
 async function ieUpload(files){
   ieCollect(); S.ie.uploading=true; render();
@@ -1024,11 +1066,12 @@ function bind(){
   if(q){ q.oninput=()=>{ S.q=q.value; const pos=q.selectionStart; render(); const n=$("#q"); n.focus(); n.setSelectionRange(pos,pos); }; }
 }
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-go],[data-tab],[data-pic],[data-cmp-btn],[data-uncmp],[data-clear-cmp],[data-clear-q],#adminToggle,[data-edit-prod],[data-edit-cat],[data-new-prod],[data-new-cat],[data-close-ed],[data-save],[data-del],[data-del-yes],[data-del-no],[data-rmimg],[data-scroll],[data-login-close],[data-ie],[data-ie-add],[data-ie-rm],[data-ie-save],[data-ie-cancel],[data-ie-addurl],[data-view],[data-zoom],[data-lb-close],[data-ie-preview],[data-preview]");
+  const t=ev.target.closest("[data-go],[data-tab],[data-pic],[data-cmp-btn],[data-uncmp],[data-clear-cmp],[data-clear-q],#adminToggle,[data-edit-prod],[data-edit-cat],[data-new-prod],[data-new-cat],[data-close-ed],[data-save],[data-del],[data-del-yes],[data-del-no],[data-rmimg],[data-scroll],[data-login-close],[data-ie],[data-ie-copyall],[data-ie-add],[data-ie-rm],[data-ie-save],[data-ie-cancel],[data-ie-addurl],[data-view],[data-zoom],[data-lb-close],[data-ie-preview],[data-preview]");
   if(!t) return;
   const d=t.dataset;
   if(d.go!==undefined){ S.q=""; go(d.go); return; }
   if(d.ie){ const [kind,id,field]=d.ie.split("|"); ieOpen(kind,id,field); return; }
+  if(d.ieCopyall!==undefined){ ieCollect(); const set=new Set(S.ie.copyTo||[]); prodsOf(d.ieCopyall).forEach(p=>{ if(!(S.ie.kind==="prod"&&p.id===S.ie.id)) set.add("prod:"+p.id); }); S.ie.copyTo=[...set]; S.ie.skip=true; render(); return; }
   if(d.ieAdd!==undefined){ ieAdd(); return; }
   if(d.ieAddurl!==undefined){ ieAddUrl(); return; }
   if(d.lbClose!==undefined){ if(t.classList.contains("lb") && ev.target.closest(".box")) return; S.view=null; render(); return; }
@@ -1072,7 +1115,7 @@ function toggleCmp(id){
   saveCompare(); render();
 }
 
-document.addEventListener("keydown",ev=>{ if(ev.key==="Escape"){ if(S.view){ S.view=null; render(); } else if(S.df){ S.df=null; render(); } else if(S.lf){ S.lf=null; render(); } else if(S.cf){ S.cf=null; render(); } else if(S.af){ S.af=null; render(); } else if(S.ie){ S.ie=null; render(); } } });
+document.addEventListener("keydown",ev=>{ if(ev.key==="Escape"){ if(S.view){ S.view=null; render(); } else if(S.df){ S.df=null; render(); } else if(S.qp){ S.qp=null; render(); } else if(S.lf){ S.lf=null; render(); } else if(S.cf){ S.cf=null; render(); } else if(S.af){ S.af=null; render(); } else if(S.ie){ S.ie=null; render(); } } });
 
 /* =====================================================================
    ศูนย์เรียนรู้: Flashcard (ทบทวนตามความจำ) + แบบทดสอบ
@@ -1166,7 +1209,8 @@ function autoQuiz(raw){
     const isOv=String(r.id||"").startsWith("ov:"); if(isOv&&offP.has(String(r.prod||""))) return; if(isOv&&(on||String(r.status||"")==="hidden"||String(r.status||"")==="deleted")) return; /* ปิดระบบอัตโนมัติ = ข้อที่เขียนทับไว้ยังใช้ต่อแบบข้อปกติ */
     const opts=[r.a,r.b,r.c,r.d].map(x=>String(x||"").trim()).filter(Boolean); if(!r.q||opts.length<2) return;
     const key=String(r.answer||"ก").trim().toLowerCase(); const ans=Math.max(0,{"ก":0,"ข":1,"ค":2,"ง":3,"a":0,"b":1,"c":2,"d":3,"1":0,"2":1,"3":2,"4":3}[key]??0);
-    out.push({id:(isOv?"":"x:")+r.id,prod:String(r.prod||""),topic:"custom",q:String(r.q),opts,ans:Math.min(ans,opts.length-1),explain:String(r.explain||""),image:String(r.image||""),link:r.prod?"p-"+r.prod:"",custom:r}); });
+    out.push({id:(isOv?"":"x:")+r.id,prod:String(r.prod||""),topic:"custom",q:String(r.q),opts,ans:Math.min(ans,opts.length-1),explain:String(r.explain||""),image:String(r.image||""),link:r.prod?"p-"+r.prod:"",custom:r,level:String(r.level||"ปานกลาง")}); });
+  out.forEach(q=>{ if(!q.level) q.level="ง่าย"; });
   return applyOverrides(out);
 }
 let _aq=null,_aqKey=""; function allQuiz(){ const st=S.settings||{}; const k=S.prods.length+":"+S.L.quiz.length+":"+S.cats.length+":"+(st.autoQuiz||"")+":"+(st.noquiz||"")+":"+(st.quizOffProds||""); if(!_aq||_aqKey!==k){ _aq=autoQuiz(); _aqKey=k; } return _aq; }
@@ -1207,18 +1251,31 @@ function buildCards(topic,prod){
 function startCards(topic,prod){ S.L.cs=buildCards(topic,prod); go("learn-cards"); }
 
 /* ---------- แบบทดสอบ ---------- */
-const MODE_TH = m => ({random:"สุ่มรวมทุกรุ่น",war:"เฉพาะประกัน & เคลม",wrong:"ข้อที่เคยผิด",img:"ดูภาพแล้วตอบ",sim:"จำลองติดตั้ง",role:"คุยกับลูกค้า",timed:"ตอบใน 60 วิ",cmp:"เทียบรุ่น ทำไมถึงต่าง",lv1:"สอบระดับ 1",lv2:"สอบระดับ 2",lv3:"สอบระดับ 3",lv4:"สอบระดับ 4"}[m]||m);
-function startQuiz(mode,prod){
+const MODE_TH = m => ({pick:"เลือกเอง",random:"สุ่มรวมทุกรุ่น",war:"เฉพาะประกัน & เคลม",wrong:"ข้อที่เคยผิด",img:"ดูภาพแล้วตอบ",sim:"จำลองติดตั้ง",role:"คุยกับลูกค้า",timed:"ตอบใน 60 วิ",cmp:"เทียบรุ่น ทำไมถึงต่าง",lv1:"สอบระดับ 1",lv2:"สอบระดับ 2",lv3:"สอบระดับ 3",lv4:"สอบระดับ 4"}[m]||m);
+function quizPickForm(){
+  const P=S.qp; if(!P) return "";
+  const cats=[...S.cats].sort((a,b)=>(a.order??99)-(b.order??99)); const all=allQuiz();
+  const cnt=all.filter(q=>(!P.prods.length||P.prods.includes(q.prod))&&(!P.level||(q.level||"ง่าย")===P.level)&&!q.image).length;
+  return `<div class="lb" data-qp-close><div class="box txt" style="width:min(720px,100%)"><header><b>เลือกชุดแบบทดสอบเอง</b><button class="btn small" data-qp-close>ปิด ✕</button></header>
+    <div id="qp" class="ied ck" style="margin:0;border:0;border-radius:0;max-height:70vh;overflow:auto;display:grid;gap:10px;font-size:13.5px">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center"><b>ระดับ</b>${[["","ทุกระดับ"],...LV.map(x=>[x,x])].map(([k,l])=>`<label style="display:flex;gap:4px;align-items:center"><input type="radio" name="qplevel" value="${k}" ${P.level===k?"checked":""}>${l}</label>`).join("")}<span style="flex:1"></span><b>จำนวนข้อ</b><select name="qpn">${[10,20,30,50].map(n=>`<option ${P.n===n?"selected":""}>${n}</option>`).join("")}</select></div>
+      <div><b>รุ่น</b> <span class="soft">(ไม่ติ๊ก = ทุกรุ่น)</span></div>
+      ${cats.map(c=>{ const ps=prodsOf(c.id); return ps.length?`<div><div style="display:flex;gap:8px;align-items:center"><b>${esc(c.name)}</b><button type="button" class="btn small" data-qp-cat="${esc(c.id)}">ทั้งหมวด</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">${ps.map(p=>`<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" name="qpprod" value="${esc(p.id)}" ${P.prods.includes(p.id)?"checked":""}>${esc(p.name)} <span class="soft">(${all.filter(q=>q.prod===p.id&&(!P.level||(q.level||"ง่าย")===P.level)).length})</span></label>`).join("")}</div></div>`:""; }).join("")}
+    </div><div class="bar" style="padding:10px 14px"><span class="soft">ตรงเงื่อนไข ${cnt} ข้อ</span><span style="flex:1"></span><button type="button" class="btn small" data-qp-clear>ล้างที่เลือก</button><button type="button" class="btn small primary" data-qp-start ${cnt?"":"disabled"}>เริ่มทำ ${Math.min(cnt,P.n)} ข้อ</button></div></div></div>`;
+}
+function qpCollect(){ const P=S.qp, root=$("#qp"); if(!P||!root) return; P.prods=[...root.querySelectorAll('[name=qpprod]:checked')].map(x=>x.value); const lv=root.querySelector('[name=qplevel]:checked'); P.level=lv?lv.value:""; P.n=+((root.querySelector('[name=qpn]')||{}).value||10); }
+function startQuiz(mode,prod,opt){
   let qs=allQuiz();
-  if(mode==="prod"){ const p=prodById(prod); qs=qs.filter(q=>q.prod===prod || (p && !q.prod && q.cat===p.cat)); }
+  if(mode==="pick"){ opt=opt||{}; const ps=opt.prods||[]; qs=qs.filter(q=>!q.image&&(!ps.length||ps.includes(q.prod))&&(!opt.level||(q.level||"ง่าย")===opt.level)); }
+  else if(mode==="prod"){ const p=prodById(prod); qs=qs.filter(q=>q.prod===prod || (p && !q.prod && q.cat===p.cat)); }
   else if(mode==="war") qs=qs.filter(q=>q.topic==="war");
   else if(mode==="img") qs=imgCases();
   else if(mode==="random") qs=qs.filter(q=>!q.image);
   else if(mode==="cmp") qs=qs.filter(q=>q.topic==="cmp");
   else if(mode==="wrong"){ const w=S.L.prog.wrong||{}; qs=qs.filter(q=>w[q.id]); }
   if(!qs.length){ flash("ยังไม่มีคำถามสำหรับโหมดนี้"); return; }
-  const items=shuffle(qs).slice(0,10).map(q=>{ const order=shuffle(q.opts.map((_,i)=>i)); return {q,order,pick:null}; });
-  S.L.qs={mode,prod,items,idx:0,start:Date.now(),done:false,notify:true,addCards:true,saved:false};
+  const items=shuffle(qs).slice(0,mode==="pick"?((opt&&opt.n)||10):10).map(q=>{ const order=shuffle(q.opts.map((_,i)=>i)); return {q,order,pick:null}; });
+  S.L.qs={mode,prod,items,idx:0,start:Date.now(),done:false,notify:true,addCards:true,saved:false,opt:opt||null};
   go("learn-quiz");
 }
 function pickAnswer(i){
@@ -1277,6 +1334,7 @@ function viewLearn(){
    <div class="section-h"><h2>แบบทดสอบ</h2><span class="soft">คำถาม ${qcount.length} ข้อ · ชุดละ 10 ข้อ สุ่มใหม่ทุกครั้ง</span></div>
    <div class="ltiles">
      <button class="ltile" data-learn-quiz="random"><span class="ic acc">${lIcon("list")}</span><b>สุ่มรวมทุกรุ่น</b><span class="soft">10 ข้อจากทุกหมวด</span></button>
+     <button class="ltile" data-quiz-pick><span class="ic acc">${lIcon("list")}</span><b>เลือกเอง · รุ่น / ระดับ / จำนวนข้อ</b><span class="soft">ติ๊กหลายรุ่น เลือกง่าย-กลาง-ยาก</span></button>
      <button class="ltile" data-learn-quiz="war"><span class="ic amber">${lIcon("shield")}</span><b>เฉพาะประกัน & เคลม</b><span class="soft">${qcount.filter(q=>q.topic==="war").length} ข้อ</span></button>
      <button class="ltile ${wrongN?"warn":""}" data-learn-quiz="wrong"><span class="ic warn">${lIcon("flag")}</span><b>ข้อที่เคยผิด</b><span class="soft">${wrongN?wrongN+" ข้อ · ตอบถูกแล้วจะหลุดจากรายการ":"ยังไม่มี"}</span></button>
      <button class="ltile ${qcount.some(q=>q.topic==="cmp")?"":"dim"}" data-learn-quiz="cmp"><span class="ic">${lIcon("list")}</span><b>เทียบรุ่น ทำไมถึงต่าง</b><span class="soft">${qcount.filter(q=>q.topic==="cmp").length} ข้อ · รุ่นไหนเหมาะกับลูกค้าแบบไหน</span></button>
@@ -1334,8 +1392,8 @@ function viewQuiz(){
        ${dots}
        ${ses.items.some(x=>!x.ok)?`<div><b>ข้อที่ผิด</b><ul style="margin:6px 0 0;padding-left:20px;display:grid;gap:4px;font-size:14px">${ses.items.filter(x=>!x.ok).map(x=>`<li>${esc(x.q.q)} — <span style="color:var(--ok)">${esc(x.q.opts[x.q.ans])}</span>${x.q.link?` · <button class="btn small" data-go="${esc(x.q.link)}">ดูข้อมูล</button>`:""}</li>`).join("")}</ul></div>`:`<p style="margin:0;color:var(--ok)"><b>ถูกทุกข้อ!</b></p>`}
        ${ses.saved?`<p class="soft" style="margin:0">บันทึกผลแล้ว${ses.notify!==false?" · ส่งสรุปเข้าไลน์แล้ว":""}</p>`:`<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:14px"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="q-notify" ${ses.notify!==false?"checked":""}>ส่งสรุปคะแนนเข้าไลน์กลุ่ม</label><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="q-cards" ${ses.addCards?"checked":""}>เพิ่มข้อที่ผิดเข้า Flashcard</label></div>
-       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-learn-finish>บันทึกผล</button><button class="btn" data-learn-quiz="${esc(ses.mode)}" data-prod="${esc(ses.prod||"")}">ทำใหม่อีกชุด</button></div>`}
-       ${ses.saved?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-learn-quiz="${esc(ses.mode)}" data-prod="${esc(ses.prod||"")}">ทำใหม่อีกชุด</button><button class="btn" data-go="learn">กลับศูนย์เรียนรู้</button></div>`:""}
+       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" data-learn-finish>บันทึกผล</button><button class="btn" data-learn-quiz="${esc(ses.mode)}" data-prod="${esc(ses.prod||"")}" data-opt="${esc(JSON.stringify(ses.opt||null))}">ทำใหม่อีกชุด</button></div>`}
+       ${ses.saved?`<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-learn-quiz="${esc(ses.mode)}" data-prod="${esc(ses.prod||"")}" data-opt="${esc(JSON.stringify(ses.opt||null))}">ทำใหม่อีกชุด</button><button class="btn" data-go="learn">กลับศูนย์เรียนรู้</button></div>`:""}
      </div></div></div>`;
   }
   const it=ses.items[ses.idx], q=it.q; const letters=["ก","ข","ค","ง","จ","ฉ"];
@@ -1361,11 +1419,11 @@ function learnForm(){
   const pasteBox=f.kind==="quiz"&&!f.d.id?`<details class="trouble" ${f.pasteOpen?"open":""} style="margin-bottom:8px"><summary>📋 วางข้อความทั้งก้อน แล้วให้ระบบแยกให้ (ใส่ได้หลายข้อ)</summary><div style="padding:8px 12px;display:grid;gap:6px">
       <textarea name="paste" placeholder="วางแบบนี้ (จะคั่นด้วยบรรทัดว่างหรือใส่เลขข้อก็ได้)\n\nรุ่น: ES-9920\nคำถาม: ไฟม่วงกระพริบหมายถึงอะไร?\nก. กระดาษหมด\nข. หัวพิมพ์ร้อนเกิน\nค. ไม่มีสัญญาณ WiFi\nง. ฝาปิดไม่สนิท\nเฉลย: ข\nอธิบาย: ปิดเครื่องพัก 5 นาที\n\n2. BC-300 นับเหรียญได้ไหม?\n- ได้\n- ไม่ได้ *\nเหตุผล: นับได้เฉพาะธนบัตร" style="font-family:var(--f-mono);font-size:12.5px;min-height:150px">${esc(f.paste||"")}</textarea>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><button type="button" class="btn small primary" data-lf-parse>แยกข้อความ</button><label class="btn small" style="display:inline-flex;cursor:pointer;white-space:nowrap">${f.fileBusy?"กำลังอ่านไฟล์…":"📂 อัปโหลดไฟล์ข้อสอบ (.txt .csv .xlsx)"}<input type="file" accept=".txt,.md,.csv,.xlsx,.xls" hidden data-lf-file></label><span class="soft" style="font-size:12.5px">รองรับ: รุ่น/หมวด/คำถาม/ก-ง หรือ A-D หรือ 1-4 หรือ - /เฉลย/อธิบาย/รูป · ใส่ * ท้ายตัวเลือกที่ถูกก็ได้ · Excel/CSV ใช้หัวคอลัมน์ รุ่น, หมวด, คำถาม, ก, ข, ค, ง, เฉลย, อธิบาย, รูป</span></div>
-      ${f.bulk?`<div class="sec" style="margin:0"><h3>แยกได้ ${f.bulk.length} ข้อ</h3><div style="padding:8px 12px;display:grid;gap:6px;font-size:13.5px;max-height:220px;overflow:auto">${f.bulk.map((b,i)=>`<div style="display:flex;gap:8px;align-items:flex-start"><span style="flex:1;min-width:0"><b>${i+1}.</b> ${esc(b.q)} <span class="soft">· ${b.prod?esc(prodName(b.prod)):"ทุกรุ่น"} · เฉลย ${esc(b.answer)}: ${esc(b[{"ก":"a","ข":"b","ค":"c","ง":"d"}[b.answer]]||"")}${b.warn?` · <span style="color:var(--danger)">${esc(b.warn)}</span>`:""}</span></span><button type="button" class="btn small" data-lf-bulk-rm="${i}">ลบ</button></div>`).join("")}</div>
+      ${f.bulk?`<div class="sec" style="margin:0"><h3>แยกได้ ${f.bulk.length} ข้อ</h3><div style="padding:8px 12px;display:grid;gap:6px;font-size:13.5px;max-height:220px;overflow:auto">${f.bulk.map((b,i)=>`<div style="display:flex;gap:8px;align-items:flex-start"><span style="flex:1;min-width:0"><b>${i+1}.</b> ${esc(b.q)} <span class="soft">· ${b.prod?esc(prodName(b.prod)):"ทุกรุ่น"} · ${esc(b.level||"ปานกลาง")} · เฉลย ${esc(b.answer)}: ${esc(b[{"ก":"a","ข":"b","ค":"c","ง":"d"}[b.answer]]||"")}${b.warn?` · <span style="color:var(--danger)">${esc(b.warn)}</span>`:""}</span></span><button type="button" class="btn small" data-lf-bulk-rm="${i}">ลบ</button></div>`).join("")}</div>
         <div style="padding:0 12px 10px;display:flex;gap:6px;align-items:center"><button type="button" class="btn small primary" data-lf-bulk-save ${f.saving?"disabled":""}>${f.saving?`กำลังบันทึก… ${f.bulkDone||0}/${f.bulk.length}`:`บันทึกทั้งหมด ${f.bulk.length} ข้อ`}</button><span class="soft" style="font-size:12.5px">ข้อที่มี ⚠ จะใช้ค่าที่เดาให้ ตรวจอีกทีได้ในคลังข้อสอบ</span></div></div>`:""}</div></details>`:"";
   const body=f.kind==="quiz"?`${pasteBox}${inp("q","คำถาม","เช่น ES-9920 ไฟม่วงกระพริบหมายถึงอะไร?",true)}
     <div class="row2">${inp("a","ตัวเลือก ก")}${inp("b","ตัวเลือก ข")}</div><div class="row2">${inp("c","ตัวเลือก ค (เว้นได้)")}${inp("d","ตัวเลือก ง (เว้นได้)")}</div>
-    <div class="row2"><label style="display:grid;gap:3px;font-size:13px;font-weight:600">เฉลย<select name="answer">${["ก","ข","ค","ง"].map(k=>`<option ${String(f.d.answer||"ก")===k?"selected":""}>${k}</option>`).join("")}</select></label><label style="display:grid;gap:3px;font-size:13px;font-weight:600">รูปประกอบ<span style="display:flex;gap:6px"><input name="image" placeholder="อัปโหลด หรือวางลิงก์รูป" value="${esc(f.d.image||"")}" style="flex:1;min-width:0">${S.admin?`<label class="btn small" style="display:inline-flex;cursor:pointer;white-space:nowrap">${f.uploading?"กำลังอัปโหลด…":"⬆ อัปโหลดรูป"}<input type="file" accept="image/*" hidden data-lf-img></label>`:""}</span>${f.d.image?`<img src="${esc(imgUrl(f.d.image))}" alt="" style="max-height:120px;border-radius:8px;border:1px solid var(--line);justify-self:start">`:""}</label></div>
+    <div class="row2"><label style="display:grid;gap:3px;font-size:13px;font-weight:600">ระดับความยาก<select name="level">${["ง่าย","ปานกลาง","ยาก"].map(k=>`<option ${String(f.d.level||"ปานกลาง")===k?"selected":""}>${k}</option>`).join("")}</select></label><label style="display:grid;gap:3px;font-size:13px;font-weight:600">เฉลย<select name="answer">${["ก","ข","ค","ง"].map(k=>`<option ${String(f.d.answer||"ก")===k?"selected":""}>${k}</option>`).join("")}</select></label><label style="display:grid;gap:3px;font-size:13px;font-weight:600">รูปประกอบ<span style="display:flex;gap:6px"><input name="image" placeholder="อัปโหลด หรือวางลิงก์รูป" value="${esc(f.d.image||"")}" style="flex:1;min-width:0">${S.admin?`<label class="btn small" style="display:inline-flex;cursor:pointer;white-space:nowrap">${f.uploading?"กำลังอัปโหลด…":"⬆ อัปโหลดรูป"}<input type="file" accept="image/*" hidden data-lf-img></label>`:""}</span>${f.d.image?`<img src="${esc(imgUrl(f.d.image))}" alt="" style="max-height:120px;border-radius:8px;border:1px solid var(--line);justify-self:start">`:""}</label></div>
     ${inp("explain","คำอธิบายเฉลย","ทำไมข้อนี้ถึงถูก / ลิงก์วิธีแก้",true)}`
    :f.kind==="flow"?`${inp("title","ชื่อชุดจำลอง","เช่น ตั้งค่า WiFi ES-9920UW")}<label style="display:grid;gap:3px;font-size:13px;font-weight:600">ขั้นตอน (รูปแบบด้านล่าง)<textarea name="steps" style="font-family:var(--f-mono);font-size:12.5px;min-height:260px">${esc(f.d.steps||FLOW_TEMPLATE)}</textarea></label><div class="hint" style="white-space:pre-wrap">## รหัส | ชื่อขั้น  → ขึ้นขั้นใหม่
 บรรทัดธรรมดา = คำอธิบาย · img: รูป · hint: คำใบ้ (โหมดฝึก)
@@ -1382,7 +1440,7 @@ c: ข้อความลูกค้า · coach: โค้ชกระซิ
 async function learnFormSave(){
   const f=S.lf, root=$("#lf"); const v=n=>(root.querySelector(`[name=${n}]`)||{}).value??"";
   const d=Object.assign({},f.d,{prod:v("prod"),topic:v("topic").trim()});
-  if(f.kind==="quiz"){ Object.assign(d,{q:v("q").trim(),a:v("a").trim(),b:v("b").trim(),c:v("c").trim(),d:v("d").trim(),answer:v("answer"),explain:v("explain").trim(),image:v("image").trim()}); if(!d.q||!d.a||!d.b){ flash("ใส่คำถามและตัวเลือกอย่างน้อย 2 ข้อ"); return; } }
+  if(f.kind==="quiz"){ Object.assign(d,{q:v("q").trim(),a:v("a").trim(),b:v("b").trim(),c:v("c").trim(),d:v("d").trim(),answer:v("answer"),explain:v("explain").trim(),image:v("image").trim(),level:v("level")||"ปานกลาง"}); if(!d.q||!d.a||!d.b){ flash("ใส่คำถามและตัวเลือกอย่างน้อย 2 ข้อ"); return; } }
   else if(f.kind==="flow"){ Object.assign(d,{title:v("title").trim(),steps:v("steps")}); if(!d.title||parseFlow(d.steps).length<2){ flash("ใส่ชื่อชุดและอย่างน้อย 2 ขั้น"); return; } }
   else if(f.kind==="role"){ Object.assign(d,{title:v("title").trim(),customer:v("customer").trim(),level:v("level"),script:v("script")}); if(!d.title||parseRole(d.script).filter(x=>x.opts.length).length<1){ flash("ใส่ชื่อเคสและอย่างน้อย 1 ตอนที่มีตัวเลือก"); return; } }
   else { Object.assign(d,{front:v("front").trim(),back:v("back").trim()}); if(!d.front||!d.back){ flash("ใส่ทั้งด้านหน้าและด้านหลัง"); return; } }
@@ -1403,10 +1461,10 @@ function draftPick(prod,n){
   const ov=overrides(); const saved=new Set(S.L.quiz.map(r=>String(r.id||"")));
   const pool=autoQuiz(true).filter(q=>(!prod||q.prod===prod)&&!saved.has("dq:"+q.id)&&!(ov[q.id]&&/hidden|deleted/.test(String(ov[q.id].status||""))));
   return shuffle(pool).slice(0,n).map(q=>{ const others=q.opts.filter((_,i)=>i!==q.ans); const o=shuffle([q.opts[q.ans],...others].slice(0,4)); const ans=o.indexOf(q.opts[q.ans]);
-    return {src:q.id,prod:q.prod||"",topic:DQ_TOPIC[q.topic]||q.topic||"",q:q.q,a:o[0]||"",b:o[1]||"",c:o[2]||"",d:o[3]||"",answer:QL[ans<0?0:ans],explain:q.explain||"",image:q.image||""}; });
+    return {src:q.id,level:"ง่าย",prod:q.prod||"",topic:DQ_TOPIC[q.topic]||q.topic||"",q:q.q,a:o[0]||"",b:o[1]||"",c:o[2]||"",d:o[3]||"",answer:QL[ans<0?0:ans],explain:q.explain||"",image:q.image||""}; });
 }
 function draftOpen(){ const prod=(S.B||{}).prod||""; const items=draftPick(prod,5); if(!items.length){ flash(prod?"ไม่มีข้อให้ร่างเพิ่มสำหรับรุ่นนี้แล้ว":"ไม่มีข้อให้ร่างเพิ่มแล้ว"); return; } S.df={prod,items,saving:false}; render(); }
-function draftCollect(){ const f=S.df, root=$("#df"); if(!f||!root) return; f.items.forEach((it,i)=>{ const b=root.querySelector(`[data-df-item="${i}"]`); if(!b) return; ["q","a","b","c","d","answer","explain","topic"].forEach(k=>{ const el=b.querySelector(`[name=${k}]`); if(el) it[k]=el.value; }); }); }
+function draftCollect(){ const f=S.df, root=$("#df"); if(!f||!root) return; f.items.forEach((it,i)=>{ const b=root.querySelector(`[data-df-item="${i}"]`); if(!b) return; ["q","a","b","c","d","answer","explain","topic","level"].forEach(k=>{ const el=b.querySelector(`[name=${k}]`); if(el) it[k]=el.value; }); }); }
 function draftForm(){
   const f=S.df; if(!f) return "";
   const inp=(i,it,n,l,ta)=>`<label style="display:grid;gap:3px;font-size:12.5px;font-weight:600">${l}${ta?`<textarea name="${n}" style="font-family:var(--f-body);min-height:48px">${esc(it[n]||"")}</textarea>`:`<input name="${n}" value="${esc(it[n]||"")}">`}</label>`;
@@ -1414,14 +1472,14 @@ function draftForm(){
     <div id="df" class="ied" style="margin:0;border:0;border-radius:0;max-height:70vh;overflow:auto;display:grid;gap:12px">
     ${f.items.length?f.items.map((it,i)=>`<div class="sec" data-df-item="${i}" style="margin:0"><h3 style="display:flex;gap:8px;align-items:center">ข้อ ${i+1} <span class="soft" style="font-weight:400;font-size:12.5px">· ${esc(prodName(it.prod)||"ทุกรุ่น")} · ${esc(it.topic)}</span><span style="flex:1"></span><button type="button" class="btn small" data-df-redo="${i}">สุ่มข้ออื่น</button><button type="button" class="btn small danger" data-df-skip="${i}">ข้าม (ไม่เอาข้อนี้)</button></h3>
       <div style="padding:8px 12px;display:grid;gap:6px">${inp(i,it,"q","คำถาม",true)}<div class="row2">${inp(i,it,"a","ก")}${inp(i,it,"b","ข")}</div><div class="row2">${inp(i,it,"c","ค (เว้นได้)")}${inp(i,it,"d","ง (เว้นได้)")}</div>
-      <div class="row2"><label style="display:grid;gap:3px;font-size:12.5px;font-weight:600">เฉลย<select name="answer">${QL.map(k=>`<option ${it.answer===k?"selected":""}>${k}</option>`).join("")}</select></label>${inp(i,it,"topic","หมวด")}</div>${inp(i,it,"explain","คำอธิบายเฉลย",true)}</div></div>`).join(""):`<div class="empty">ข้ามหมดแล้ว กด "ร่างชุดใหม่"</div>`}
+      <div class="row2"><label style="display:grid;gap:3px;font-size:12.5px;font-weight:600">เฉลย<select name="answer">${QL.map(k=>`<option ${it.answer===k?"selected":""}>${k}</option>`).join("")}</select></label>${inp(i,it,"topic","หมวด")}</div><label style="display:grid;gap:3px;font-size:12.5px;font-weight:600">ระดับความยาก<select name="level">${LV.map(k=>`<option ${(it.level||"ง่าย")===k?"selected":""}>${k}</option>`).join("")}</select></label>${inp(i,it,"explain","คำอธิบายเฉลย",true)}</div></div>`).join(""):`<div class="empty">ข้ามหมดแล้ว กด "ร่างชุดใหม่"</div>`}
     </div><div class="bar" style="padding:10px 14px"><button type="button" class="btn small" data-df-more>+ ร่างเพิ่มอีก 5 ข้อ</button><span style="flex:1"></span><button type="button" class="btn small" data-df-close>ยกเลิก</button><button type="button" class="btn small primary" data-df-save ${f.saving||!f.items.length?"disabled":""}>${f.saving?`กำลังบันทึก… ${f.done||0}/${f.items.length}`:`บันทึก ${f.items.length} ข้อ`}</button></div></div></div>`;
 }
 async function draftSave(){
   const f=S.df; if(!f||f.saving) return; draftCollect();
   const bad=f.items.findIndex(it=>!String(it.q).trim()||!String(it.a).trim()||!String(it.b).trim()); if(bad>=0){ flash(`ข้อ ${bad+1} ต้องมีคำถามและตัวเลือก ก, ข`); return; }
   f.saving=true; f.done=0; render(); let fail=0;
-  const rows=f.items.map(it=>({id:"dq:"+it.src,prod:it.prod,topic:String(it.topic||"").trim(),q:String(it.q).trim(),a:String(it.a).trim(),b:String(it.b).trim(),c:String(it.c||"").trim(),d:String(it.d||"").trim(),answer:it.answer||"ก",explain:String(it.explain||"").trim(),image:it.image||""}));
+  const rows=f.items.map(it=>({id:"dq:"+it.src,level:it.level||"ง่าย",prod:it.prod,topic:String(it.topic||"").trim(),q:String(it.q).trim(),a:String(it.a).trim(),b:String(it.b).trim(),c:String(it.c||"").trim(),d:String(it.d||"").trim(),answer:it.answer||"ก",explain:String(it.explain||"").trim(),image:it.image||""}));
   try{ await run("saveRows",S.pw,"quiz",rows); }catch(e){ fail=rows.length; } f.done=rows.length; render();
   const n=f.items.length-fail; S.df=null; flash(fail?`บันทึกแล้ว ${n} ข้อ ไม่สำเร็จ ${fail} ข้อ`:`บันทึกแล้ว ${n} ข้อ`); await learnLoad(true);
 }
@@ -1430,7 +1488,8 @@ async function draftSkip(i){ const f=S.df; if(!f) return; draftCollect(); const 
   try{ await run("saveRow",S.pw,"quiz",{id:"ov:"+it.src,prod:it.prod,topic:it.topic,q:String(it.q||"").slice(0,120),status:"hidden"},{send:false,note:""}); const d=await run("getLearn",S.L.user||"-",S.L.token||""); S.L.quiz=d.quiz||[]; _aq=null; }catch(e){} }
 
 /* ---------- วางข้อสอบทั้งก้อน → แยกอัตโนมัติ ---------- */
-const QL=["ก","ข","ค","ง"];
+const QL=["ก","ข","ค","ง"]; const LV=["ง่าย","ปานกลาง","ยาก"];
+const lvNorm=v=>{ v=String(v||"").trim().toLowerCase(); if(/ยาก|hard|3/.test(v)) return "ยาก"; if(/ง่าย|easy|1/.test(v)) return "ง่าย"; if(/กลาง|medium|mid|2/.test(v)) return "ปานกลาง"; return ""; };
 function quizProdMatch(txt){
   const t=String(txt||"").trim().toLowerCase(); if(!t) return "";
   const norm=x=>String(x||"").toLowerCase().replace(/[\s\-_]/g,"");
@@ -1442,13 +1501,14 @@ function parseQuizText(txt,defProd,defTopic){
   const lines=String(txt||"").replace(/\r/g,"").split("\n").map(l=>l.replace(/\u00a0/g," ").trim());
   const out=[]; let cur=null, last=null, prod=defProd||"", topic=defTopic||"";
   const optIdx=k=>{ k=String(k).toLowerCase(); const i=QL.indexOf(k); if(i>=0) return i; if(/^[a-d]$/.test(k)) return k.charCodeAt(0)-97; if(/^[1-4]$/.test(k)) return +k-1; return -1; };
-  const close=()=>{ if(cur&&cur.q&&cur.opts.length>=2){ const o=Object.assign({prod:cur.prod,topic:cur.topic,q:cur.q.trim(),explain:cur.explain.trim(),image:cur.image||""},{a:"",b:"",c:"",d:""}); cur.opts.slice(0,4).forEach((v,i)=>o["abcd"[i]]=v.trim()); let ans=cur.ans; if(ans<0&&cur.ansText){ const at=cur.ansText.toLowerCase(); ans=cur.opts.findIndex(v=>v.toLowerCase()===at); if(ans<0) ans=cur.opts.findIndex(v=>v.toLowerCase().includes(at)||at.includes(v.toLowerCase())); } if(ans<0){ ans=0; o.warn="⚠ ไม่พบเฉลย ใช้ข้อ ก"; } if(ans>3){ ans=0; o.warn="⚠ เฉลยเกิน 4 ตัวเลือก"; } if(cur.opts.length>4) o.warn=(o.warn?o.warn+" ":"")+"⚠ ตัดเหลือ 4 ตัวเลือก"; o.answer=QL[ans]; out.push(o); } else if(cur&&cur.q){ out.push(Object.assign({prod:cur.prod,topic:cur.topic,q:cur.q.trim(),a:cur.opts[0]||"",b:cur.opts[1]||"",c:"",d:"",answer:"ก",explain:cur.explain.trim(),image:cur.image||"",warn:"⚠ ตัวเลือกไม่ครบ 2 ข้อ"},{})); } cur=null; last=null; };
+  const close=()=>{ if(cur&&cur.q&&cur.opts.length>=2){ const o=Object.assign({prod:cur.prod,topic:cur.topic,q:cur.q.trim(),explain:cur.explain.trim(),image:cur.image||"",level:cur.level||"ปานกลาง"},{a:"",b:"",c:"",d:""}); cur.opts.slice(0,4).forEach((v,i)=>o["abcd"[i]]=v.trim()); let ans=cur.ans; if(ans<0&&cur.ansText){ const at=cur.ansText.toLowerCase(); ans=cur.opts.findIndex(v=>v.toLowerCase()===at); if(ans<0) ans=cur.opts.findIndex(v=>v.toLowerCase().includes(at)||at.includes(v.toLowerCase())); } if(ans<0){ ans=0; o.warn="⚠ ไม่พบเฉลย ใช้ข้อ ก"; } if(ans>3){ ans=0; o.warn="⚠ เฉลยเกิน 4 ตัวเลือก"; } if(cur.opts.length>4) o.warn=(o.warn?o.warn+" ":"")+"⚠ ตัดเหลือ 4 ตัวเลือก"; o.answer=QL[ans]; out.push(o); } else if(cur&&cur.q){ out.push(Object.assign({prod:cur.prod,topic:cur.topic,q:cur.q.trim(),a:cur.opts[0]||"",b:cur.opts[1]||"",c:"",d:"",answer:"ก",explain:cur.explain.trim(),image:cur.image||"",warn:"⚠ ตัวเลือกไม่ครบ 2 ข้อ"},{})); } cur=null; last=null; };
   const open=()=>{ if(!cur) cur={prod,topic,q:"",opts:[],ans:-1,ansText:"",explain:"",image:""}; };
   for(const raw of lines){
     if(!raw){ if(cur&&cur.q&&cur.opts.length>=2&&(cur.ans>=0||cur.ansText||cur.explain)) close(); else if(cur) last=null; continue; }
     let m;
     if((m=raw.match(/^(รุ่น(สินค้า)?|รุ่นที่|model)\s*[:：]\s*(.+)$/i))){ const id=quizProdMatch(m[3]); if(cur) cur.prod=id||cur.prod; prod=id||prod; last=null; continue; }
     if((m=raw.match(/^(หมวด|หัวข้อ|topic)\s*[:：]\s*(.+)$/i))){ if(cur) cur.topic=m[2].trim(); topic=m[2].trim(); last=null; continue; }
+    if((m=raw.match(/^(ระดับ(ความยาก)?|level|difficulty)\s*[:：]\s*(.+)$/i))){ open(); cur.level=lvNorm(m[3]); last=null; continue; }
     if((m=raw.match(/^(รูป(ประกอบ)?|image|img)\s*[:：]\s*(.+)$/i))){ open(); cur.image=m[3].trim(); last=null; continue; }
     if((m=raw.match(/^(เฉลย|คำตอบ|ตอบ|answer|ans)\s*[:：]?\s*(.+)$/i))){ open(); const v=m[2].trim().replace(/^(ข้อ|ตัวเลือก)\s*/,""); const k=v.match(/^([ก-ง]|[a-dA-D]|[1-4])(\s*[.)\]:：]|\s|$)/); if(k&&optIdx(k[1])>=0&&(v.length<=3||/^[ก-ง]|^[a-dA-D]/.test(v))) cur.ans=optIdx(k[1]); else cur.ansText=v; last="ans"; continue; }
     if((m=raw.match(/^(อธิบาย|คำอธิบาย(เฉลย)?|เหตุผล|explain(ation)?|note)\s*[:：]?\s*(.*)$/i))){ open(); cur.explain=(cur.explain?cur.explain+"\n":"")+m[4]; last="explain"; continue; }
@@ -1486,11 +1546,11 @@ function parseCSV(txt){ const rows=[]; let row=[],cell="",q=false; txt=String(tx
 function rowsToQuiz(rows,defProd,defTopic){
   if(!rows.length) return []; const H=rows[0].map(h=>String(h||"").trim().toLowerCase());
   const col=(...names)=>{ for(const n of names){ const i=H.indexOf(n); if(i>=0) return i; } for(const n of names){ if(n.length<2) continue; const i=H.findIndex(h=>h.startsWith(n)); if(i>=0) return i; } return -1; };
-  const C={prod:col("รุ่น","model","prod"),topic:col("หมวด","topic"),q:col("คำถาม","question","q"),a:col("ก","a","ตัวเลือก ก","option a"),b:col("ข","b","ตัวเลือก ข"),c:col("ค","c","ตัวเลือก ค"),d:col("ง","d","ตัวเลือก ง"),ans:col("เฉลย","answer","ans","คำตอบ"),explain:col("อธิบาย","คำอธิบาย","explain","เหตุผล"),image:col("รูป","image","img")};
+  const C={prod:col("รุ่น","model","prod"),topic:col("หมวด","topic"),q:col("คำถาม","question","q"),a:col("ก","a","ตัวเลือก ก","option a"),b:col("ข","b","ตัวเลือก ข"),c:col("ค","c","ตัวเลือก ค"),d:col("ง","d","ตัวเลือก ง"),ans:col("เฉลย","answer","ans","คำตอบ"),explain:col("อธิบาย","คำอธิบาย","explain","เหตุผล"),image:col("รูป","image","img"),level:col("ระดับ","ระดับความยาก","level","difficulty")};
   if(C.q<0||C.a<0||C.b<0) return null;
   const g=(r,i)=>i>=0?String(r[i]??"").trim():""; const out=[];
   rows.slice(1).forEach(r=>{ const q=g(r,C.q),a=g(r,C.a),b=g(r,C.b); if(!q||!a||!b) return; const opts=[a,b,g(r,C.c),g(r,C.d)]; let ans=g(r,C.ans).replace(/^(ข้อ|ตัวเลือก)\s*/,""); let ai=-1; const k=ans.match(/^([ก-ง]|[a-dA-D]|[1-4])$/); if(k){ const kk=k[1].toLowerCase(); ai=QL.indexOf(kk); if(ai<0&&/^[a-d]$/.test(kk)) ai=kk.charCodeAt(0)-97; if(ai<0&&/^[1-4]$/.test(kk)) ai=+kk-1; } if(ai<0&&ans){ const al=ans.toLowerCase(); ai=opts.findIndex(o=>o&&o.toLowerCase()===al); if(ai<0) ai=opts.findIndex(o=>o&&(o.toLowerCase().includes(al)||al.includes(o.toLowerCase()))); }
-    const o={prod:C.prod>=0&&g(r,C.prod)?(quizProdMatch(g(r,C.prod))||defProd||""):(defProd||""),topic:g(r,C.topic)||defTopic||"",q,a,b,c:opts[2],d:opts[3],answer:QL[ai<0?0:ai],explain:g(r,C.explain),image:g(r,C.image)}; if(ai<0) o.warn="⚠ ไม่พบเฉลย ใช้ข้อ ก"; if(C.prod>=0&&g(r,C.prod)&&!quizProdMatch(g(r,C.prod))) o.warn=(o.warn?o.warn+" ":"")+"⚠ ไม่พบรุ่น "+g(r,C.prod); out.push(o); });
+    const o={prod:C.prod>=0&&g(r,C.prod)?(quizProdMatch(g(r,C.prod))||defProd||""):(defProd||""),topic:g(r,C.topic)||defTopic||"",q,a,b,c:opts[2],d:opts[3],answer:QL[ai<0?0:ai],explain:g(r,C.explain),image:g(r,C.image),level:lvNorm(g(r,C.level))||"ปานกลาง"}; if(ai<0) o.warn="⚠ ไม่พบเฉลย ใช้ข้อ ก"; if(C.prod>=0&&g(r,C.prod)&&!quizProdMatch(g(r,C.prod))) o.warn=(o.warn?o.warn+" ":"")+"⚠ ไม่พบรุ่น "+g(r,C.prod); out.push(o); });
   return out;
 }
 function loadXLSX(){ if(window.XLSX) return Promise.resolve(); return new Promise((ok,bad)=>{ const sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; sc.onload=ok; sc.onerror=()=>bad(new Error("โหลดตัวอ่าน Excel ไม่ได้ ลองบันทึกเป็น CSV แทน")); document.head.appendChild(sc); }); }
@@ -1505,6 +1565,7 @@ async function lfFile(file){
   catch(err){ flash("อ่านไฟล์ไม่สำเร็จ: "+errMsg(err)); }
   f.fileBusy=false; render();
 }
+document.addEventListener("change",ev=>{ if(S.qp&&ev.target.closest("#qp")){ qpCollect(); render(); } });
 document.addEventListener("change",ev=>{ if(ev.target.matches("[data-lf-file]")&&ev.target.files.length) lfFile(ev.target.files[0]); });
 async function lfBulkSave(){
   const f=S.lf; if(!f||!f.bulk||!f.bulk.length) return; const root=$("#lf"); if(root) f.notify=root.querySelector("[name=notify]").checked;
@@ -1529,10 +1590,10 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
 });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
+  const t=ev.target.closest("[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
   if(!t) return; const d=t.dataset;
   if(d.learnCards!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"cards",topic:d.learnCards,prod:d.prod||""}; go("learn"); return; } startCards(d.learnCards,d.prod||""); return; }
-  if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } startQuiz(d.learnQuiz,d.prod||""); return; }
+  if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } let o=null; try{ o=d.opt?JSON.parse(d.opt):null; }catch(e){} startQuiz(d.learnQuiz,d.prod||"",o); return; }
   if(d.learnFlip!==undefined){ S.L.cs.flip=!S.L.cs.flip; render(); return; }
   if(d.learnGrade!==undefined){ gradeCard(S.L.cs.queue[S.L.cs.idx].id,d.learnGrade); return; }
   if(d.learnPick!==undefined){ pickAnswer(+d.learnPick); return; }
@@ -1545,6 +1606,11 @@ document.addEventListener("click",ev=>{
   if(d.learnDel!==undefined){ if(S.lfDel!==d.learnDel){ S.lfDel=d.learnDel; render(); return; } const [kind,id]=d.learnDel.split("|"); learnDel(kind,id); return; }
   if(d.lfParse!==undefined){ lfParse(); return; }
   if(d.bankDraft!==undefined){ draftOpen(); return; }
+  if(d.quizPick!==undefined){ S.qp={prods:[],level:"",n:10}; render(); return; }
+  if(d.qpClose!==undefined){ if(t.classList.contains("lb") && ev.target.closest(".box")) return; S.qp=null; render(); return; }
+  if(d.qpCat!==undefined){ qpCollect(); const set=new Set(S.qp.prods); prodsOf(d.qpCat).forEach(p=>set.add(p.id)); S.qp.prods=[...set]; render(); return; }
+  if(d.qpClear!==undefined){ qpCollect(); S.qp.prods=[]; S.qp.level=""; render(); return; }
+  if(d.qpStart!==undefined){ qpCollect(); const P=S.qp; S.qp=null; startQuiz("pick","",{prods:P.prods,level:P.level,n:P.n}); return; }
   if(d.dfClose!==undefined){ if(t.classList.contains("lb") && ev.target.closest(".box")) return; S.df=null; render(); return; }
   if(d.dfSave!==undefined){ draftSave(); return; }
   if(d.dfSkip!==undefined){ draftSkip(+d.dfSkip); return; }
@@ -2598,6 +2664,7 @@ function viewBank(){
   const rank={custom:0,override:1,auto:2}; list=list.map((x,i)=>Object.assign(x,{i})).sort((a,b)=>rank[a.kind]-rank[b.kind]||(a.kind==="custom"?String(b.q.custom.ts||"").localeCompare(String(a.q.custom.ts||"")):0)||a.i-b.i);
   if(B.src==="override") list=list.filter(x=>x.kind==="override"); else if(B.src==="custom") list=list.filter(x=>x.kind==="custom"); else if(B.src==="auto") list=list.filter(x=>x.kind==="auto"); else if(B.src==="wrong") list=list.filter(x=>x.wrong>0).sort((a,b)=>b.wrong-a.wrong); else if(B.src==="img") list=list.filter(x=>x.q.image);
   if(B.prod) list=list.filter(x=>x.q.prod===B.prod||(!x.q.prod&&x.q.cat===(prodById(B.prod)||{}).cat));
+  if(B.level) list=list.filter(x=>(x.q.level||"ง่าย")===B.level);
   const qq=B.q.trim().toLowerCase(); if(qq) list=list.filter(x=>(x.q.q+" "+x.q.opts.join(" ")+" "+prodName(x.q.prod)).toLowerCase().includes(qq));
   const shown=list.slice(0,B.n);
   const prodOpts=`<option value="">ทุกรุ่น</option>`+[...S.prods].sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(p=>`<option value="${esc(p.id)}" ${B.prod===p.id?"selected":""}>${esc(p.name)}</option>`).join("");
@@ -2608,14 +2675,14 @@ function viewBank(){
      <label class="search" style="flex:1;min-width:220px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="bank-q" placeholder="ค้นหาคำถาม / ตัวเลือก / ชื่อรุ่น" value="${esc(B.q)}" autocomplete="off"></label>
      <select id="bank-prod" style="background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:7px 10px">${prodOpts}</select>
      <button class="btn small primary" data-learn-add="quiz">+ เพิ่มคำถาม</button>${B.prod?`<button class="btn small danger" data-bank-prod-off="${esc(B.prod)}">${S.lfDel==="prod|"+B.prod?"ยืนยันลบข้อสอบทั้งรุ่น "+esc(prodName(B.prod))+"?":"ลบข้อสอบทั้งรุ่นนี้"}</button>`:""}</div>
-     <div style="display:flex;gap:6px;flex-wrap:wrap">${srcs.map(([k,l])=>`<button class="btn small ${B.src===k?"primary":""}" data-bank-src="${k}">${l}</button>`).join("")}</div>
+     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">${srcs.map(([k,l])=>`<button class="btn small ${B.src===k?"primary":""}" data-bank-src="${k}">${l}</button>`).join("")}<span class="soft" style="margin-left:6px">ระดับ:</span>${[["","ทุกระดับ"],...LV.map(x=>[x,x])].map(([k,l])=>`<button class="btn small ${(B.level||"")===k?"primary":""}" data-bank-level="${k}">${l}</button>`).join("")}</div>
      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:10px;font-size:13.5px"><b>ข้อสอบที่ระบบสร้างเอง:</b><span class="chip ${autoQuizOn()?"ok":""}">${autoQuizOn()?"เปิด (ทีมเห็นทุกข้อ)":"ปิด · ทีมเห็นเฉพาะข้อที่ทีมเขียน/ร่างแล้วบันทึก"}</span><button class="btn small ${autoQuizOn()?"danger":""}" data-set-autoquiz="${autoQuizOn()?"0":"1"}">${autoQuizOn()?"ปิดทั้งหมด (ลบออกจากข้อสอบ)":"เปิดกลับ"}</button><button class="btn small primary" data-bank-draft>✨ ให้ระบบร่าง 5 ข้อ${B.prod?" ของ "+esc(prodName(B.prod)):""} ให้แก้ก่อนบันทึก</button></div>
      ${(offList.length||hidden.length)?`<details class="trouble" style="border-top:1px solid var(--line);padding-top:8px"${String(S.lfDel||"").startsWith("qperm|")||String(S.lfDel||"").startsWith("perm|")?" open":""}><summary>🗑 ถังขยะ · ข้อที่ลบไว้ ${hidden.length} ข้อ · รุ่นที่ลบทั้งรุ่น ${offList.length} รุ่น — กู้คืน / ลบถาวร ได้ที่นี่</summary><div style="display:grid;gap:10px;padding-top:8px">
      ${offList.length?`<div class="sec warn" style="margin:0"><h3>รุ่นที่ลบข้อสอบออกทั้งหมด (${offList.length})</h3><div style="padding:10px 14px;display:grid;gap:6px;font-size:14px">${offList.map(x=>`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="flex:1;min-width:160px"><b>${esc(prodName(x.id))}</b> <span class="soft">· ข้อสอบและ Flashcard ของรุ่นนี้ถูกซ่อนทั้งหมด</span></span><button class="btn small" data-bank-prod-on="${esc(x.id)}">กู้คืน</button><button class="btn small danger" data-bank-prod-perm="${esc(x.id)}">${S.lfDel==="perm|"+x.id?"ยืนยันลบถาวร?":"ลบถาวร"}</button></div>`).join("")}</div></div>`:""}
      ${hidden.length?`<details class="trouble" style="margin:0" open${String(S.lfDel||"").startsWith("qperm|")?" open":""}><summary>ข้อที่ลบไว้ ${hidden.length} ข้อ (กู้คืนได้)</summary><div style="padding:8px 14px;display:grid;gap:6px;font-size:14px">${hidden.map(r=>`<div style="display:flex;gap:8px;align-items:center"><span style="flex:1;min-width:0">${esc(r.q)}${r.prod?` <span class="soft">· ${esc(prodName(r.prod))}</span>`:""}</span><button class="btn small" data-bank-restore="${esc(hidKey(r))}">กู้คืน</button><button class="btn small danger" data-bank-perm="${esc(hidKey(r))}">${S.lfDel==="qperm|"+hidKey(r)?"ยืนยัน?":"ลบถาวร"}</button></div>`).join("")}</div></details>`:""}</div></details>`:`<div class="soft" style="font-size:12.5px;border-top:1px solid var(--line);padding-top:8px">🗑 ถังขยะว่าง — ข้อที่กด "ลบ" หรือรุ่นที่ลบทั้งรุ่นจะมาอยู่ตรงนี้ให้กู้คืนหรือลบถาวร</div>`}
      <span class="soft">ข้อที่ระบบสร้างจากข้อมูลสินค้า: ถ้าข้อมูลผิด กด <b>แก้ที่ต้นทาง</b> จะพาไปแก้ในหน้าสินค้า (ข้อสอบและหน้าสินค้าเปลี่ยนพร้อมกัน) · ถ้าอยากเปลี่ยนแค่คำถามข้อนี้ กด <b>เขียนทับ</b> · ไม่อยากให้ออกสอบ กด <b>ลบ</b> (กู้คืนได้จากรายการด้านล่าง)</span></div>
    ${shown.length?`<div style="display:grid;gap:8px">${shown.map(({q,src,wrong,kind})=>{ const o=qOrigin(q); return `<div class="sec" style="margin:0"><div style="padding:10px 14px;display:grid;gap:6px">
-     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="chip ${kind==="override"?"amber":kind==="custom"?"acc":""}">${kind==="override"?"เขียนทับ":src}</span>${q.prod?`<span class="chip">${esc(prodName(q.prod))}</span>`:q.cat?`<span class="chip">${esc((catById(q.cat)||{}).name||q.cat)}</span>`:""}${q.image?`<span class="chip">มีรูป</span>`:""}${wrong?`<span class="chip warn" style="background:var(--warn-soft);color:var(--warn);border-color:transparent">ทีมผิด ${wrong} ครั้ง</span>`:""}${q.custom&&q.custom.by?`<span class="soft">โดย ${esc(q.custom.by)}</span>`:""}</div>
+     <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="chip ${kind==="override"?"amber":kind==="custom"?"acc":""}">${kind==="override"?"เขียนทับ":src}</span>${q.prod?`<span class="chip">${esc(prodName(q.prod))}</span>`:q.cat?`<span class="chip">${esc((catById(q.cat)||{}).name||q.cat)}</span>`:""}<span class="chip ${q.level==="ยาก"?"warn":q.level==="ปานกลาง"?"amber":""}">${esc(q.level||"ง่าย")}</span>${q.image?`<span class="chip">มีรูป</span>`:""}${wrong?`<span class="chip warn" style="background:var(--warn-soft);color:var(--warn);border-color:transparent">ทีมผิด ${wrong} ครั้ง</span>`:""}${q.custom&&q.custom.by?`<span class="soft">โดย ${esc(q.custom.by)}</span>`:""}</div>
      <b>${esc(q.q)}</b>
      <div style="display:flex;gap:6px;flex-wrap:wrap;font-size:13px">${q.opts.map((x,i)=>`<span class="chip ${i===q.ans?"ok":""}">${i===q.ans?"✓ ":""}${esc(x)}</span>`).join("")}</div>
      ${q.explain?`<span class="soft">${esc(q.explain)}</span>`:""}
@@ -2671,7 +2738,7 @@ document.addEventListener("submit",ev=>{
 document.addEventListener("input",ev=>{ if(ev.target.id==="bank-q"&&S.B){ S.B.q=ev.target.value; S.B.n=60; const pos=ev.target.selectionStart; render(); const n=$("#bank-q"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } } });
 document.addEventListener("change",ev=>{ if(ev.target.id==="bank-prod"&&S.B){ S.B.prod=ev.target.value; S.B.n=60; render(); } if(ev.target.matches("[data-plan-tick]")){ const p=S.L.prog; p.onboard=p.onboard||{}; if(!p.onboardStart) p.onboardStart=planState().start; if(ev.target.checked) p.onboard[ev.target.dataset.planTick]=Date.now(); else delete p.onboard[ev.target.dataset.planTick]; progSave(); render(); } });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-set-learn],[data-set-msg],[data-set-weekly],[data-set-autoquiz],[data-bank-prod-off],[data-bank-prod-on],[data-bank-prod-perm],[data-bank-perm],[data-weekly-now],[data-bank-src],[data-bank-more],[data-bank-origin],[data-bank-override],[data-bank-hide],[data-bank-restore],[data-user-reload],[data-user-add],[data-user-edit],[data-user-del],[data-user-cancel],[data-user-pin],[data-plan-day]"); if(!t) return; const d=t.dataset;
+  const t=ev.target.closest("[data-set-learn],[data-set-msg],[data-set-weekly],[data-set-autoquiz],[data-bank-prod-off],[data-bank-prod-on],[data-bank-prod-perm],[data-bank-perm],[data-weekly-now],[data-bank-src],[data-bank-level],[data-bank-more],[data-bank-origin],[data-bank-override],[data-bank-hide],[data-bank-restore],[data-user-reload],[data-user-add],[data-user-edit],[data-user-del],[data-user-cancel],[data-user-pin],[data-plan-day]"); if(!t) return; const d=t.dataset;
   if(d.setLearn!==undefined){ setLearnOpen(d.setLearn); render(); return; }
   if(d.setMsg!==undefined){ setSettingUI("learnMsg",($("#set-msg")||{}).value||""); return; }
   if(d.setWeekly!==undefined){ setSettingUI("weekly",d.setWeekly).then(()=>render()); return; }
@@ -2681,6 +2748,7 @@ document.addEventListener("click",ev=>{
   if(d.bankProdPerm!==undefined){ if(S.lfDel!=="perm|"+d.bankProdPerm){ S.lfDel="perm|"+d.bankProdPerm; render(); return; } S.lfDel=null; setSettingUI("quizOffProds",JSON.stringify(qOffProds().map(x=>x.id===d.bankProdPerm?{id:x.id,perm:1}:x))).then(()=>render()); return; }
   if(d.bankPerm!==undefined){ if(S.lfDel!=="qperm|"+d.bankPerm){ S.lfDel="qperm|"+d.bankPerm; render(); return; } S.lfDel=null; bankPerm(d.bankPerm); return; }
   if(d.weeklyNow!==undefined){ run("sendWeeklyNow",S.pw).then(txt=>{ S.view={kind:"text",text:txt,label:"ส่งเข้าไลน์ทีมแล้ว"}; render(); }).catch(err=>flash("ส่งไม่สำเร็จ: "+errMsg(err))); return; }
+  if(d.bankLevel!==undefined){ S.B.level=d.bankLevel; S.B.n=60; render(); return; }
   if(d.bankSrc!==undefined){ S.B.src=d.bankSrc; S.B.n=60; render(); return; }
   if(d.bankMore!==undefined){ S.B.n+=60; render(); return; }
   if(d.bankOrigin!==undefined){ bankOrigin(d.bankOrigin); return; }
