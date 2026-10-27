@@ -492,6 +492,7 @@ function setRoute(h){
   else if(h.startsWith("p-")) S.route={v:"prod",id:h.slice(2)};
   else if(h==="compare") S.route={v:"compare"};
   else if(h==="warranty") S.route={v:"warranty"};
+  else if(h==="import") S.route={v:"import"};
   else if(h==="learn"||h==="learn-cards"||h==="learn-quiz"||h==="learn-sim"||h==="learn-role"||h==="learn-timed"||h==="learn-cert"||h==="learn-dash"||h==="learn-board"||h==="learn-bank"||h==="learn-users"||h==="learn-plan"||h==="apps") S.route={v:h};
   else S.route={v:"home"};
 }
@@ -521,6 +522,7 @@ function render(){
   else if(S.route.v==="learn-bank") main=viewBank();
   else if(S.route.v==="apps") main=viewApps();
   else if(S.route.v==="warranty") main=viewWarranty();
+  else if(S.route.v==="import") main=viewImport();
   else if(S.route.v==="learn-users") main=viewUsers();
   else if(S.route.v==="learn-plan") main=viewPlan();
   else if(S.route.v==="learn-cards") main=viewCards();
@@ -546,7 +548,7 @@ function render(){
     ${S.canEdit?`<button class="btn ${S.admin?"admin-on":""}" id="adminToggle">${S.admin?"กำลังแก้ไข · ปิด":"หลังบ้าน"}</button>`:""}
   </div></header>
   ${S.admin?`<div class="admin-bar"><div class="wrap">โหมดหลังบ้าน: เอาเมาส์ชี้ส่วนไหนแล้วกด ✎ เพื่อแก้ตรงนั้นได้เลย (รูป สเปก คลิป วิธีแก้ปัญหา ประกัน)
-    <span style="flex:1"></span><button class="btn small" data-new-prod="${esc(S.route.v==="cat"?S.route.id:"")}">+ เพิ่มสินค้า</button><button class="btn small" data-new-cat>+ เพิ่มหมวด</button><button class="btn small" data-go="apps">หน้าโหลดแอป</button><button class="btn small ${(S.settings||{}).learnOpen==="0"?"danger":""}" data-set-learn="${(S.settings||{}).learnOpen==="0"?"1":"0"}" title="เปิด/ปิดศูนย์เรียนรู้ให้พนักงาน">ศูนย์เรียนรู้: ${(S.settings||{}).learnOpen==="0"?"ปิดอยู่ · กดเพื่อเปิด":"เปิดอยู่ · กดเพื่อปิด"}</button></div></div>`:""}
+    <span style="flex:1"></span><button class="btn small" data-new-prod="${esc(S.route.v==="cat"?S.route.id:"")}">+ เพิ่มสินค้า</button><button class="btn small" data-new-cat>+ เพิ่มหมวด</button><button class="btn small" data-go="import">🌐 ร่างจากเว็บ</button><button class="btn small" data-go="apps">หน้าโหลดแอป</button><button class="btn small ${(S.settings||{}).learnOpen==="0"?"danger":""}" data-set-learn="${(S.settings||{}).learnOpen==="0"?"1":"0"}" title="เปิด/ปิดศูนย์เรียนรู้ให้พนักงาน">ศูนย์เรียนรู้: ${(S.settings||{}).learnOpen==="0"?"ปิดอยู่ · กดเพื่อเปิด":"เปิดอยู่ · กดเพื่อปิด"}</button></div></div>`:""}
   <main>${main}</main>
   ${S.compare.length && S.route.v!=="compare" ? `<div class="pad-bottom"></div><div class="tray"><div class="wrap">
      <span class="mono" style="font-size:13px">เปรียบเทียบ ${S.compare.length} รุ่น:</span>
@@ -648,6 +650,59 @@ function secBlock(s,cls=""){
 function linkify(t){
   return esc(t).replace(/(https?:\/\/[^\s<]+)/g,u=>`<a href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="${u}">${u.length>48?u.slice(0,46)+"…":u}</a>`);
 }
+
+/* ---------- ร่างจากเว็บ: ใส่ลิงก์หน้าสินค้า → ดึงมาเป็นบล็อก → เลือกส่วน/รุ่นที่จะใส่ ---------- */
+const IMP_FIELDS=[["specs","สเปก (ตาราง หัวข้อ: ค่า)"],["features","จุดเด่น (บรรทัดละข้อ)"],["notes","ข้อควรรู้"],["troubles","วิธีแก้ปัญหา"],["warranty","ประกัน"],["care","การดูแลรักษา"],["software","โปรแกรม/แอป"],["quick","ข้อมูลเด่น"],["images","รูปสินค้า"],["tagline","คำอธิบายสั้น"],["skip","— ไม่เอา —"]];
+function impGuess(title){ const t=String(title||"").toLowerCase(); if(/สเปก|spec|รายละเอียดสินค้า|ข้อมูลจำเพาะ|technical/.test(t)) return "specs"; if(/จุดเด่น|คุณสมบัติ|feature|highlight|ทำไม/.test(t)) return "features"; if(/ปัญหา|แก้|trouble|faq|คำถาม/.test(t)) return "troubles"; if(/ประกัน|warranty|เคลม/.test(t)) return "warranty"; if(/ดูแล|รักษา|care|ทำความสะอาด/.test(t)) return "care"; if(/โปรแกรม|แอป|driver|ไดรเวอร์|software|ดาวน์โหลด/.test(t)) return "software"; if(/รูป|gallery|ภาพ/.test(t)) return "images"; return "notes"; }
+function impGroups(data){
+  const groups=[]; let cur={title:"ข้อมูลทั่วไป",items:[]}; const imgs={title:"รูปจากหน้าเว็บ",items:[],field:"images"};
+  (data.blocks||[]).forEach(b=>{ if(b.type==="img"){ imgs.items.push({b,on:false}); return; } if(b.type==="h"){ if(cur.items.length) groups.push(cur); cur={title:b.text,items:[]}; return; } cur.items.push({b,on:true}); });
+  if(cur.items.length) groups.push(cur);
+  groups.forEach(g=>{ g.field=impGuess(g.title); g.on=true; });
+  if(imgs.items.length) groups.push(imgs);
+  return groups.filter(g=>g.items.length);
+}
+function impHay(p){ if(!p) return ""; const r=prodToRow(p); return Object.values(r).join("\n").toLowerCase().replace(/\s+/g," "); }
+function impIsNew(hay,text){ const t=String(text||"").toLowerCase().replace(/\s+/g," ").trim(); if(!t||t.length<4) return false; return !hay.includes(t.slice(0,80)); }
+function viewImport(){
+  if(!S.admin) return `<div class="wrap state"><p>หน้านี้สำหรับหลังบ้าน — กด "หลังบ้าน" ใส่รหัสก่อนครับ</p></div>`;
+  const W=S.W||(S.W={url:"",prod:"",loading:false,data:null,groups:null,mode:"append",notify:false});
+  const prodOpts=`<option value="">— เลือกรุ่นที่จะใส่ข้อมูล —</option>`+[...S.prods].sort((a,b)=>String(a.name).localeCompare(String(b.name))).map(p=>`<option value="${esc(p.id)}" ${W.prod===p.id?"selected":""}>${esc(p.name)}</option>`).join("");
+  const p=prodById(W.prod); const hay=impHay(p); const webLinks=p?(p.media||[]).filter(x=>/^https?:/.test(x.url)).slice(0,6):[];
+  return `<div class="wrap"><button class="back" data-go="">‹ หน้าแรก</button>
+   <div class="section-h"><h2>🌐 ร่างจากเว็บ</h2><span class="soft">ใส่ลิงก์หน้าสินค้า → ระบบดึงข้อความ/ตาราง/รูปมาให้เลือก → ใส่เข้ารุ่นที่ต้องการ</span></div>
+   <div class="side" style="margin-bottom:12px"><div class="ied ck" style="margin:0;border:0;border-radius:0;display:grid;gap:10px">
+     <div class="row2"><label style="display:grid;gap:3px;font-size:13px;font-weight:600">รุ่นปลายทาง<select id="imp-prod">${prodOpts}</select></label><label style="display:grid;gap:3px;font-size:13px;font-weight:600">ลิงก์หน้าเว็บ<span style="display:flex;gap:6px"><input id="imp-url" placeholder="https://easyprinterthailand.com/..." value="${esc(W.url)}" style="flex:1;min-width:0"><button class="btn small primary" data-imp-fetch ${W.loading?"disabled":""}>${W.loading?"กำลังดึง…":"ดึงข้อมูล"}</button></span></label></div>
+     ${webLinks.length?`<div style="font-size:12.5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center"><span class="soft">ลิงก์ที่บันทึกไว้ในรุ่นนี้:</span>${webLinks.map(x=>`<button class="btn small" data-imp-use="${esc(x.url)}">${esc(x.label||x.url).slice(0,40)}</button>`).join("")}</div>`:""}
+     ${W.err?`<div style="color:var(--danger);font-size:13px">${esc(W.err)}</div>`:""}
+   </div></div>
+   ${W.groups?`<div class="side" style="margin-bottom:12px"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:13.5px"><b>${esc(W.data.title||"")}</b>${W.data.desc?`<span class="soft">· ${esc(W.data.desc).slice(0,160)}</span>`:""}</div>
+     <div class="ck" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px"><label><input type="radio" name="impmode" value="append" ${W.mode!=="replace"?"checked":""}>เพิ่มต่อท้ายของเดิม</label><label><input type="radio" name="impmode" value="replace" ${W.mode==="replace"?"checked":""}>แทนที่ทั้งส่วน</label><span style="flex:1"></span><span class="soft">${p?`ข้อมูลที่รุ่น ${esc(p.name)} ยังไม่มีจะมีป้าย <span class="chip ok">ใหม่</span>`:"เลือกรุ่นปลายทางเพื่อดูว่าข้อมูลไหนยังไม่มี"}</span></div></div>
+     ${W.groups.map((g,gi)=>`<div class="sec ck" style="margin-bottom:10px;${g.on?"":"opacity:.55"}"><h3 style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><label style="font-size:14px"><input type="checkbox" data-imp-g="${gi}" ${g.on?"checked":""}><b>${esc(g.title)}</b></label><span class="soft" style="font-weight:400;font-size:12.5px">${g.items.length} รายการ</span><span style="flex:1"></span><label style="font-size:12.5px;gap:6px">ใส่ในส่วน<select data-imp-field="${gi}" style="width:auto">${IMP_FIELDS.map(([k,l])=>`<option value="${k}" ${g.field===k?"selected":""}>${l}</option>`).join("")}</select></label></h3>
+       <div style="padding:6px 12px 10px;display:grid;gap:4px;font-size:13.5px">${g.items.map((it,ii)=>{ const b=it.b; const isNew=p&&impIsNew(hay,b.text||b.url); return `<label style="display:flex;gap:8px;align-items:flex-start;white-space:normal"><input type="checkbox" data-imp-i="${gi}|${ii}" ${it.on?"checked":""} style="margin-top:3px">${b.type==="img"?`<img src="${esc(b.url)}" alt="" style="height:64px;border-radius:6px;border:1px solid var(--line)">`:""}<span style="flex:1;min-width:0">${b.type==="kv"?`<b>${esc(b.cells[0])}</b>: ${esc(b.cells[1])}`:b.type==="li"?`• ${esc(b.text)}`:esc(b.text||"")}${isNew?` <span class="chip ok" style="font-size:11px">ใหม่</span>`:""}</span></label>`; }).join("")}</div></div>`).join("")}
+     <div class="bar" style="position:sticky;bottom:0;background:var(--paper);padding:10px 14px;border:1px solid var(--line);border-radius:12px"><label class="ck" style="font-size:13px;margin-right:10px"><input type="checkbox" id="imp-notify" ${W.notify?"checked":""}>ส่งสรุปเข้าไลน์</label><span style="flex:1"></span><span class="soft" style="font-size:12.5px">${p?`จะบันทึกเข้า ${esc(p.name)}`:"ยังไม่ได้เลือกรุ่น"}</span><button class="btn small primary" data-imp-save ${p&&!W.saving?"":"disabled"}>${W.saving?"กำลังบันทึก…":"บันทึกเข้ารุ่น"}</button></div>`:`<div class="empty">ใส่ลิงก์แล้วกด "ดึงข้อมูล" — ใช้ได้กับหน้าเว็บทั่วไปที่แสดงข้อความ/ตาราง (หน้าที่โหลดด้วยสคริปต์อาจดึงได้ไม่ครบ)</div>`}
+   <div style="height:40px"></div></div>`;
+}
+function impCollect(){ const W=S.W; if(!W) return; const u=$("#imp-url"); if(u) W.url=u.value.trim(); const pr=$("#imp-prod"); if(pr) W.prod=pr.value; const m=document.querySelector('[name=impmode]:checked'); if(m) W.mode=m.value; const n=$("#imp-notify"); if(n) W.notify=n.checked;
+  if(W.groups){ W.groups.forEach((g,gi)=>{ const f=document.querySelector(`[data-imp-field="${gi}"]`); if(f) g.field=f.value; const c=document.querySelector(`[data-imp-g="${gi}"]`); if(c) g.on=c.checked; g.items.forEach((it,ii)=>{ const x=document.querySelector(`[data-imp-i="${gi}|${ii}"]`); if(x) it.on=x.checked; }); }); } }
+async function impFetch(){ impCollect(); const W=S.W; if(!/^https?:\/\//i.test(W.url)){ flash("ใส่ลิงก์ให้ขึ้นต้นด้วย http"); return; } W.loading=true; W.err=""; render();
+  try{ const d=await run("fetchWeb",S.pw,W.url); W.data=d; W.groups=impGroups(d); if(!W.groups.length) W.err="ดึงได้แต่ไม่พบข้อความ/ตารางในหน้านี้"; }catch(err){ W.err="ดึงไม่สำเร็จ: "+errMsg(err); }
+  W.loading=false; render(); }
+function impValue(g){ const items=g.items.filter(x=>x.on).map(x=>x.b); const texts=items.filter(b=>b.type!=="img").map(b=>b.type==="kv"?b.cells.join(": "):b.text).filter(Boolean); const t=FT[g.field];
+  if(g.field==="images") return items.filter(b=>b.type==="img").map(b=>b.url);
+  if(g.field==="tagline") return texts[0]||"";
+  if(t==="kv") return items.map(b=>{ if(b.type==="kv") return [b.cells[0],b.cells[1]]; const m=String(b.text||"").match(/^([^:：]{1,40})[:：]\s*(.+)$/); return m?[m[1].trim(),m[2].trim()]:null; }).filter(Boolean);
+  if(t==="lines") return texts;
+  if(t==="secs") return [{title:g.title==="ข้อมูลทั่วไป"?"":g.title,lines:texts,imgs:[]}];
+  return null; }
+async function impSave(){ impCollect(); const W=S.W; const p=prodById(W.prod); if(!p){ flash("เลือกรุ่นปลายทางก่อน"); return; }
+  const obj=JSON.parse(JSON.stringify(p)); const done=[]; 
+  const merge=(field,old,v)=>{ const t=FT[field]; if(W.mode==="replace"||!Array.isArray(old)||!old.length) return v; if(t==="kv"){ const keys=new Set(v.map(x=>x[0])); return old.filter(x=>!keys.has(x[0])).concat(v); } if(t==="secs"){ const titles=new Set(v.map(x=>x.title)); return old.filter(x=>!titles.has(x.title)||!x.title).concat(v); } return old.concat(v.filter(x=>!old.includes(x))); };
+  W.groups.forEach(g=>{ if(!g.on||g.field==="skip") return; const v=impValue(g); if(v===null||(Array.isArray(v)&&!v.length)||v==="") return; if(g.field==="tagline"){ obj.tagline=v; } else obj[g.field]=merge(g.field,obj[g.field],v); done.push(FL[g.field]||g.field); });
+  if(!done.length){ flash("ยังไม่ได้เลือกรายการที่จะใส่"); return; }
+  W.saving=true; render();
+  try{ applyData(await run("saveRow",S.pw,"prod",prodToRow(obj),{send:W.notify,note:"ร่างจากเว็บ: "+W.url})); W.saving=false; flash(`บันทึกเข้า ${p.name} แล้ว (${[...new Set(done)].join(", ")})`); go("p-"+p.id); }
+  catch(err){ W.saving=false; flash("บันทึกไม่สำเร็จ: "+errMsg(err)); render(); } }
 
 /* ---------- หน้ารวมประกัน: เห็นเงื่อนไขทุกหมวด/ทุกรุ่นในที่เดียว แก้แล้วเลือกนำไปใส่รุ่นอื่นได้ ---------- */
 function viewWarranty(){
@@ -1565,7 +1620,7 @@ async function lfFile(file){
   catch(err){ flash("อ่านไฟล์ไม่สำเร็จ: "+errMsg(err)); }
   f.fileBusy=false; render();
 }
-document.addEventListener("change",ev=>{ if(S.qp&&ev.target.closest("#qp")){ qpCollect(); render(); } });
+document.addEventListener("change",ev=>{ if(S.qp&&ev.target.closest("#qp")){ qpCollect(); render(); } if(S.W&&S.route.v==="import"&&(ev.target.id==="imp-prod"||ev.target.matches("[data-imp-field],[data-imp-g]"))){ impCollect(); render(); } });
 document.addEventListener("change",ev=>{ if(ev.target.matches("[data-lf-file]")&&ev.target.files.length) lfFile(ev.target.files[0]); });
 async function lfBulkSave(){
   const f=S.lf; if(!f||!f.bulk||!f.bulk.length) return; const root=$("#lf"); if(root) f.notify=root.querySelector("[name=notify]").checked;
@@ -1590,7 +1645,7 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
 });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
+  const t=ev.target.closest("[data-imp-fetch],[data-imp-use],[data-imp-save],[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
   if(!t) return; const d=t.dataset;
   if(d.learnCards!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"cards",topic:d.learnCards,prod:d.prod||""}; go("learn"); return; } startCards(d.learnCards,d.prod||""); return; }
   if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } let o=null; try{ o=d.opt?JSON.parse(d.opt):null; }catch(e){} startQuiz(d.learnQuiz,d.prod||"",o); return; }
@@ -1606,6 +1661,9 @@ document.addEventListener("click",ev=>{
   if(d.learnDel!==undefined){ if(S.lfDel!==d.learnDel){ S.lfDel=d.learnDel; render(); return; } const [kind,id]=d.learnDel.split("|"); learnDel(kind,id); return; }
   if(d.lfParse!==undefined){ lfParse(); return; }
   if(d.bankDraft!==undefined){ draftOpen(); return; }
+  if(d.impFetch!==undefined){ impFetch(); return; }
+  if(d.impUse!==undefined){ impCollect(); S.W.url=d.impUse; render(); return; }
+  if(d.impSave!==undefined){ impSave(); return; }
   if(d.quizPick!==undefined){ S.qp={prods:[],level:"",n:10}; render(); return; }
   if(d.qpClose!==undefined){ if(t.classList.contains("lb") && ev.target.closest(".box")) return; S.qp=null; render(); return; }
   if(d.qpCat!==undefined){ qpCollect(); const set=new Set(S.qp.prods); prodsOf(d.qpCat).forEach(p=>set.add(p.id)); S.qp.prods=[...set]; render(); return; }
