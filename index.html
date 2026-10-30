@@ -283,6 +283,13 @@ body{margin:0}
 .ied input,.ied select,.ied textarea{background:var(--paper-2);border:1px solid var(--line);border-radius:7px;padding:7px 9px;width:100%;font-size:14px}
 .ied textarea{min-height:72px;line-height:1.5;resize:vertical;font-family:var(--f-body)}
 .ied label{font-size:12px;color:var(--muted);display:grid;gap:3px}
+.ap-hero{background:var(--ink);color:#fff;margin-bottom:4px}.ap-hero .wrap{padding:26px 16px 20px;display:grid;gap:10px}.ap-hero h1{font-family:var(--f-display);font-size:clamp(22px,4vw,32px);margin:0;line-height:1.15}.ap-hero p{margin:0;color:#B8C0CC}.ap-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px}.ap-chip{background:transparent;color:#fff;border:1px solid #3A4152;border-radius:999px;padding:8px 16px;font:inherit;cursor:pointer}.ap-chip.on{background:#fff;color:var(--ink);border-color:#fff;font-weight:600}
+.ap-jump{display:flex;gap:2px;overflow-x:auto;font-size:14px;font-weight:600;scrollbar-width:none;border-bottom:1px solid var(--line)}.ap-jump a{padding:9px 12px;border-bottom:2px solid transparent;color:var(--muted);text-decoration:none;white-space:nowrap}.ap-jump a:hover{color:var(--ink)}
+.ap-app{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;scroll-margin-top:70px}.ap-h{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}.ap-num{width:38px;height:38px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:17px;flex:none}.ap-ico{width:54px;height:54px;border-radius:14px;color:#fff;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:19px;flex:none}.ap-t{min-width:0;flex:1}.ap-t b{font-family:var(--f-display);font-size:21px;display:block;line-height:1.2}.ap-t span{font-size:14px;color:var(--muted)}.ap-tags{display:flex;gap:6px;flex-wrap:wrap;font-size:12px}
+.ap-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}.ap-col{padding:14px 18px;display:grid;gap:9px;align-content:start;border-right:1px solid var(--line)}.ap-col:last-child{border-right:0}@media (max-width:900px){.ap-col{border-right:0;border-bottom:1px solid var(--line)}.ap-col:last-child{border-bottom:0}.ap-tags{flex-basis:100%}}
+.ap-colh{display:flex;gap:8px;align-items:center}.ap-colh i{width:24px;height:24px;border-radius:6px;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700;font-style:normal}.ap-colh b{font-family:var(--f-display);font-size:15px}.ap-colh small{color:var(--muted);font-size:12px}.ap-none{background:var(--paper-2);color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:9px 14px;font-size:13px}
+.ap-item{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-decoration:none;color:var(--ink)}.ap-item:hover{border-color:var(--accent)}.ap-ft{width:36px;height:36px;border-radius:8px;display:grid;place-items:center;font-family:var(--f-mono);font-size:11px;font-weight:700;flex:none}.ap-ft.pdf{background:var(--warn-soft);color:var(--warn)}.ap-ft.web{background:var(--accent-soft);color:var(--accent)}.ap-th{width:84px;height:50px;border-radius:6px;background:var(--ink);display:grid;place-items:center;flex:none;overflow:hidden;position:relative}.ap-th img{width:100%;height:100%;object-fit:cover;display:block}.ap-th svg{position:absolute}.ap-tx{min-width:0}.ap-tx b{font-size:14px;display:block;line-height:1.3}.ap-tx span{font-size:12px;color:var(--muted)}details.ap-new{font-size:13px;color:var(--muted)}details.ap-new summary{cursor:pointer}details.ap-new ul{margin:6px 0 0;padding-left:18px}
+.pnav{display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:100%}.pnav .pjump{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13px;max-width:220px}.back-bottom .pnav{margin-top:6px}
 .ied .ck label{display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-size:13px;white-space:nowrap}.ied .ck input[type=checkbox],.ied .ck input[type=radio]{width:auto;margin:0}
 .ied .kv{display:grid;grid-template-columns:1fr 1.5fr 32px;gap:6px;align-items:center}
 .ied .kv3{display:grid;grid-template-columns:1fr 1.3fr 1.6fr 32px;gap:6px;align-items:center}
@@ -740,9 +747,11 @@ function viewProd(id){
   if(S.tab==="war"){ const w=(p.warranty&&p.warranty.length)?p.warranty:(c.warranty||[]); panel = W("warranty", w.length? w.filter(s=>!/เครื่องสำรอง|นับระยะ/.test(s.title)).map(s=>warBlock(s,/ไม่รวม|ยกเว้น|สิ้นสุด/.test(s.title)?"warn":"")).join("") + (p.warranty&&p.warranty.length?"":`<p class="soft">ใช้เงื่อนไขร่วมของหมวด ${esc(c.name)}${S.admin?" · กด ✎ เพื่อกำหนดเฉพาะรุ่นนี้":""}</p>`) : `<div class="empty">ยังไม่มีเงื่อนไขประกัน</div>`); }
   if(S.tab==="care"){ const w=(p.care&&p.care.length)?p.care:(c.care||[]); panel = W("care", w.length? w.map(s=>secBlock(s,/ระวัง|ห้าม/.test(s.title)?"warn":"")).join("")+(p.care&&p.care.length?"":`<p class="soft">ใช้เงื่อนไขร่วมของหมวด ${esc(c.name)}${S.admin?" · กด ✎ เพื่อกำหนดเฉพาะรุ่นนี้":""}</p>`):`<div class="empty">ยังไม่มีข้อมูลการดูแลรักษา</div>`); }
 
+  const sib=prodsOf(c.id); const si=sib.findIndex(x=>x.id===p.id); const prev=sib[si-1], next=sib[si+1];
+  const pnav=`<div class="pnav"><button class="back" data-go="c-${esc(c.id)}">‹ กลับหมวด</button><button class="back" data-go="">⌂ หน้าแรก</button><span style="flex:1"></span>${prev?`<button class="back" data-go="p-${esc(prev.id)}" title="${esc(prev.name)}">‹ ${esc(prev.name)}</button>`:""}<select class="pjump" data-pjump aria-label="ไปรุ่นอื่น">${[...S.cats].sort((a,b)=>(a.order??99)-(b.order??99)).map(cc=>{ const ps=prodsOf(cc.id); return ps.length?`<optgroup label="${esc(cc.name)}">${ps.map(x=>`<option value="${esc(x.id)}" ${x.id===p.id?"selected":""}>${esc(x.name)}</option>`).join("")}</optgroup>`:""; }).join("")}</select>${next?`<button class="back" data-go="p-${esc(next.id)}" title="${esc(next.name)}">${esc(next.name)} ›</button>`:""}<span class="soft mono" style="font-size:12px">${si+1}/${sib.length}</span></div>`;
   return `<div class="wrap">
    <nav class="crumbs"><button data-go="">หน้าแรก</button><span>/</span><button data-go="c-${esc(c.id)}">${esc(c.name)}</button><span>/</span><span>${esc(p.name)}</span></nav>
-   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="back" data-go="c-${esc(c.id)}">‹ กลับหมวด ${esc(c.name)}</button><button class="back" data-go="">⌂ หน้าแรก</button></div>
+   ${pnav}
    <div class="sheet">
      <aside class="gallery">
        ${W("images",`<div class="main">${mainPic}</div>
@@ -763,7 +772,7 @@ function viewProd(id){
        </div>
        <div class="tabs" role="tablist">${tabs.map(([k,l,n])=>`<button role="tab" class="${S.tab===k?"on":""}" data-tab="${k}">${l}${n?`<span class="cnt">${n}</span>`:""}</button>`).join("")}</div>
        <div class="panel">${panel}</div>
-       <div class="back-bottom"><button class="back" data-go="c-${esc(c.id)}">‹ กลับหมวด ${esc(c.name)}</button><button class="back" data-go="">⌂ หน้าแรก</button></div>
+       <div class="back-bottom">${pnav}</div>
      </section>
    </div></div>`;
 }
@@ -1645,7 +1654,7 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
 });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-imp-fetch],[data-imp-use],[data-imp-save],[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
+  const t=ev.target.closest("[data-ap-plat],[data-ap-all],[data-ap-reload],[data-ap-admin],[data-ap-public],[data-ap-hit],[data-imp-fetch],[data-imp-use],[data-imp-save],[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
   if(!t) return; const d=t.dataset;
   if(d.learnCards!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"cards",topic:d.learnCards,prod:d.prod||""}; go("learn"); return; } startCards(d.learnCards,d.prod||""); return; }
   if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } let o=null; try{ o=d.opt?JSON.parse(d.opt):null; }catch(e){} startQuiz(d.learnQuiz,d.prod||"",o); return; }
@@ -1661,6 +1670,12 @@ document.addEventListener("click",ev=>{
   if(d.learnDel!==undefined){ if(S.lfDel!==d.learnDel){ S.lfDel=d.learnDel; render(); return; } const [kind,id]=d.learnDel.split("|"); learnDel(kind,id); return; }
   if(d.lfParse!==undefined){ lfParse(); return; }
   if(d.bankDraft!==undefined){ draftOpen(); return; }
+  if(d.apPlat!==undefined){ S.AP.plat=d.apPlat; render(); return; }
+  if(d.apAll!==undefined){ S.AP.only=""; render(); return; }
+  if(d.apReload!==undefined){ S.AP.err=""; S.AP.loaded=false; render(); return; }
+  if(d.apAdmin!==undefined){ S.apView="admin"; render(); return; }
+  if(d.apPublic!==undefined){ S.apView="public"; render(); return; }
+  if(d.apHit!==undefined){ const [id,pl]=d.apHit.split("|"); try{ run("appHit",id,pl); }catch(e){} return; }
   if(d.impFetch!==undefined){ impFetch(); return; }
   if(d.impUse!==undefined){ impCollect(); S.W.url=d.impUse; render(); return; }
   if(d.impSave!==undefined){ impSave(); return; }
@@ -2794,6 +2809,8 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="learnUser"&&(S.users||[]).length){ ev.preventDefault(); ev.stopImmediatePropagation(); const n=$("#lu").value.trim(), pin=$("#lpin").value.trim(); S.L.loginName=n; if(!n){ S.L.loginErr="เลือกชื่อก่อนครับ"; render(); return; } learnLogin(n,pin); }
 },true);
 document.addEventListener("input",ev=>{ if(ev.target.id==="bank-q"&&S.B){ S.B.q=ev.target.value; S.B.n=60; const pos=ev.target.selectionStart; render(); const n=$("#bank-q"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } } });
+document.addEventListener("change",ev=>{ if(ev.target.matches("[data-pjump]")){ go("p-"+ev.target.value); return; } });
+document.addEventListener("input",ev=>{ if(ev.target.id==="ap-q"&&S.AP){ S.AP.q=ev.target.value; const pos=ev.target.selectionStart; render(); const n=$("#ap-q"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } } });
 document.addEventListener("change",ev=>{ if(ev.target.id==="bank-prod"&&S.B){ S.B.prod=ev.target.value; S.B.n=60; render(); } if(ev.target.matches("[data-plan-tick]")){ const p=S.L.prog; p.onboard=p.onboard||{}; if(!p.onboardStart) p.onboardStart=planState().start; if(ev.target.checked) p.onboard[ev.target.dataset.planTick]=Date.now(); else delete p.onboard[ev.target.dataset.planTick]; progSave(); render(); } });
 document.addEventListener("click",ev=>{
   const t=ev.target.closest("[data-set-learn],[data-set-msg],[data-set-weekly],[data-set-autoquiz],[data-bank-prod-off],[data-bank-prod-on],[data-bank-prod-perm],[data-bank-perm],[data-weekly-now],[data-bank-src],[data-bank-level],[data-bank-more],[data-bank-origin],[data-bank-override],[data-bank-hide],[data-bank-restore],[data-user-reload],[data-user-add],[data-user-edit],[data-user-del],[data-user-cancel],[data-user-pin],[data-plan-day]"); if(!t) return; const d=t.dataset;
@@ -2832,8 +2849,8 @@ const blobB64 = blob => new Promise((ok,bad)=>{ const fr=new FileReader(); fr.on
 
 async function appsLoad(){ if(S.A&&S.A.loading) return; const keep=S.A||{}; S.A={loading:true,form:keep.form||null,up:keep.up||{}}; render(); try{ const d=await run("getApps",S.pw); S.A=Object.assign({loaded:true,form:keep.form||null,up:keep.up||{}},d); }catch(err){ S.A={err:errMsg(err),up:{}}; } render(); }
 function appsApply(d){ const keep=S.A||{}; S.A=Object.assign({loaded:true,form:null,up:keep.up||{}},d); }
-const appsUrl = () => ((S.A&&S.A.appsUrl)||(S.settings||{}).appsUrl||"").trim();
-const appLink = id => { const u=appsUrl(); if(!u) return ""; return u.replace(/[?#].*$/,"")+(u.includes("?")?"&":"?")+"app="+encodeURIComponent(id); };
+const appsUrl = () => (((S.A&&S.A.appsUrl)||(S.settings||{}).appsUrl||"").trim()) || (S.url?S.url+"?v=apps":"");
+const appLink = id => { const u=appsUrl(); if(!u) return ""; const base=u.replace(/[?#].*$/,""); return /[?&]v=apps/.test(u)?base+"?v=apps&app="+encodeURIComponent(id):base+"?app="+encodeURIComponent(id); };
 
 function appCollect(){
   const root=$("#aform"); if(!root||!S.A||!S.A.form) return; const f=S.A.form;
@@ -2846,8 +2863,51 @@ function appCollect(){
   const cl=root.querySelector("[name=clip-label]"), cu=root.querySelector("[name=clip-url]"); if(cl) f._cl=cl.value; if(cu) f._cu=cu.value;
 }
 
+/* ---------- หน้าโหลดแอปสำหรับลูกค้า (รวมอยู่ใน hub: ?v=apps) ---------- */
+const AP_PLAT={android:{l:"Android",sub:"APK"},ios:{l:"iPhone / iPad",sub:"App Store"},windows:{l:"Windows",sub:""},mac:{l:"Mac",sub:""}};
+const AP_COLORS={blue:"#1F4FD8",green:"#157A4A",amber:"#9A5B00",red:"#B4232A",ink:"#12161C",slate:"#38414E"};
+const apMB=n=>n>=1048576?(n/1048576).toFixed(1)+" MB":n>=1024?Math.round(n/1024)+" KB":"";
+const apYt=u=>(String(u||"").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/))([\w-]{6,})/)||[])[1]||"";
+const apInit=n=>String(n||"").replace(/easyprint/i,"").trim().split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase()||"EP";
+const apExt=n=>{ const m=String(n||"").match(/\.(\w+)$/); return m?"."+m[1].toLowerCase():""; };
+const apDate=s=>{ if(!s) return ""; const d=new Date(s); if(isNaN(d)) return s; return d.toLocaleDateString("th-TH",{day:"numeric",month:"short",year:"2-digit"}); };
+const apDev=()=>{ const ua=navigator.userAgent; if(/android/i.test(ua)) return "android"; if(/iphone|ipad|ipod/i.test(ua)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1)) return "ios"; if(/windows/i.test(ua)) return "windows"; if(/macintosh/i.test(ua)) return "mac"; return ""; };
+async function apLoad(){ const P=S.AP; P.loading=true; try{ const d=await run("getPublicApps"); P.apps=(d&&d.apps)||[]; P.title=d.title||""; P.line=d.line||""; P.loaded=true; }catch(err){ P.err=errMsg(err); } P.loading=false; render(); }
+function apCard(a,n,dev){
+  const have=Object.keys(AP_PLAT).filter(p=>a[p]), miss=Object.keys(AP_PLAT).filter(p=>!a[p]);
+  const notes=String(a.notes||"").split(/\r?\n/).map(s=>s.replace(/^[-•*]\s*/,"").trim()).filter(Boolean);
+  const isNew=a.date&&(Date.now()-new Date(a.date).getTime())<21*864e5;
+  const dlBtn=p=>{ const f=a[p]; if(!f) return ""; const mine=dev===p; const label=AP_PLAT[p].l+" · "+(p==="ios"&&f.link?"App Store":apExt(f.name||"")||AP_PLAT[p].sub||"ดาวน์โหลด"); return `<a class="btn ${mine?"primary":""}" href="${esc(f.url)}" target="_blank" rel="noopener" data-ap-hit="${esc(a.id)}|${p}" style="justify-content:flex-start">⬇ ${esc(label)}<span style="margin-left:auto;font-size:12px;opacity:.8">${f.size?apMB(f.size):(f.link?"↗":"")}</span></a>`; };
+  const man=(a.manuals||[]).map(m=>{ const pdf=/\.pdf|drive\.google/i.test(m.url)||m.size; return `<a class="ap-item" href="${esc(m.url)}" target="_blank" rel="noopener"><span class="ap-ft ${pdf?"pdf":"web"}">${pdf?"PDF":"WEB"}</span><span class="ap-tx"><b>${esc(m.label)}</b><span>${m.size?apMB(m.size):"เปิดหน้าเว็บ"}</span></span></a>`; }).join("");
+  const clips=(a.clips||[]).map(c=>{ const id=apYt(c.url); return `<a class="ap-item" href="${esc(c.url)}" target="_blank" rel="noopener"><span class="ap-th">${id?`<img src="https://i.ytimg.com/vi/${esc(id)}/mqdefault.jpg" alt="" loading="lazy">`:""}<svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg></span><span class="ap-tx"><b>${esc(c.label)}</b><span>${id?"YouTube":"เปิดคลิป"}</span></span></a>`; }).join("");
+  return `<article class="ap-app" id="app-${esc(a.id)}">
+    <div class="ap-h"><span class="ap-num">${n}</span><span class="ap-ico" style="background:${AP_COLORS[a.color]||AP_COLORS.blue}">${esc(apInit(a.name))}</span>
+      <div class="ap-t"><b>${esc(a.name)}</b><span>${esc(a.short||"")}</span></div>
+      <div class="ap-tags">${a.version?`<span class="chip mono">v${esc(a.version)}</span>`:""}${a.date?`<span class="chip">${esc(apDate(a.date))}</span>`:""}${isNew&&notes[0]?`<span class="chip ok">ใหม่: ${esc(notes[0])}</span>`:""}</div></div>
+    <div class="ap-cols">
+      <section class="ap-col"><div class="ap-colh"><i style="background:var(--accent)">①</i><b>ดาวน์โหลด</b>${have.length?"":`<small>ยังไม่มีไฟล์</small>`}</div>${have.map(dlBtn).join("")}${miss.length&&have.length?`<div class="ap-none">${miss.map(p=>AP_PLAT[p].l).join(" / ")} — ไม่มี</div>`:""}${notes.length?`<details class="ap-new"><summary>มีอะไรใหม่${a.version?" ใน v"+esc(a.version):""}</summary><ul>${notes.map(s=>`<li>${esc(s)}</li>`).join("")}</ul></details>`:""}</section>
+      <section class="ap-col"><div class="ap-colh"><i style="background:var(--amber)">②</i><b>คู่มือ</b><small>${(a.manuals||[]).length?(a.manuals||[]).length+" ไฟล์":""}</small></div>${man||`<div class="ap-none">ยังไม่มีคู่มือ</div>`}</section>
+      <section class="ap-col"><div class="ap-colh"><i style="background:var(--warn)">③</i><b>คลิปสอน</b><small>${(a.clips||[]).length?(a.clips||[]).length+" คลิป":""}</small></div>${clips||`<div class="ap-none">ยังไม่มีคลิป</div>`}</section>
+    </div></article>`;
+}
+function viewAppsPublic(){
+  const P=S.AP||(S.AP={apps:[],plat:"all",q:"",only:(new URLSearchParams(location.search).get("app")||""),dev:apDev(),loaded:false});
+  if(!P.loaded&&!P.loading&&!P.err) apLoad();
+  if(P.err) return `<div class="wrap state"><p>โหลดรายการแอปไม่สำเร็จ: ${esc(P.err)}</p><button class="btn" data-ap-reload>ลองใหม่</button></div>`;
+  if(!P.loaded) return `<div class="wrap state"><p>กำลังโหลดรายการแอป…</p></div>`;
+  const q=P.q.trim().toLowerCase(); const list=P.apps.filter(a=>!P.only||a.id===P.only).filter(a=>P.plat==="all"||a[P.plat]).filter(a=>!q||(a.name+" "+(a.short||"")+" "+(a.notes||"")).toLowerCase().includes(q));
+  const android=list.some(a=>a.android)&&(P.plat==="all"||P.plat==="android");
+  return `<div class="ap-hero"><div class="wrap"><h1>${esc(P.title||"โหลดแอป ดูคู่มือ และคลิปสอน — ครบในที่เดียว")}</h1><p>เลือกอุปกรณ์ที่ใช้ แต่ละแอปแยกเป็น 3 ส่วน: ① ดาวน์โหลด ② คู่มือ ③ คลิปสอน</p>
+    <div class="ap-chips">${[["all","ทั้งหมด"],["android","Android"],["ios","iPhone / iPad"],["windows","Windows"],["mac","Mac"]].map(([k,l])=>`<button class="ap-chip ${P.plat===k?"on":""}" data-ap-plat="${k}">${l}</button>`).join("")}<label class="search" style="margin-left:auto;max-width:300px;background:#1A1E25;border-color:#3A4152;color:#fff"><input id="ap-q" placeholder="ค้นหาแอป / รุ่นเครื่อง" value="${esc(P.q)}" autocomplete="off" style="color:#fff"></label>${P.line?`<a class="btn small" href="${esc(P.line)}" target="_blank" rel="noopener" style="background:#06C755;color:#fff;border-color:#06C755">ติดต่อซัพพอร์ต LINE</a>`:""}</div></div></div>
+   <div class="wrap" style="display:grid;gap:18px;padding-top:16px">
+    ${S.admin?`<div class="hint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">กำลังดูแบบลูกค้า <button class="btn small" data-ap-admin>ไปหน้าจัดการแอป (หลังบ้าน)</button><button class="btn small" data-copy="${esc(S.url+"?v=apps")}">คัดลอกลิงก์หน้านี้</button></div>`:""}
+    ${P.only?`<div class="hint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">แสดงเฉพาะแอปที่ได้รับลิงก์ <button class="btn small" data-ap-all>ดูแอปทั้งหมด ›</button></div>`:P.dev&&P.plat==="all"?`<div class="hint" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">ตรวจพบว่าคุณเปิดจาก <b>${AP_PLAT[P.dev].l}</b> — ปุ่มที่ใช้กับเครื่องคุณได้จะเป็นสีน้ำเงิน <button class="btn small" data-ap-plat="${P.dev}">ดูเฉพาะของ ${AP_PLAT[P.dev].l}</button></div>`:""}
+    ${list.length?`<div class="ap-jump">${list.map((a,i)=>`<a href="#app-${esc(a.id)}">${i+1} · ${esc(a.name.replace(/^EasyPrint\s+/i,""))}</a>`).join("")}</div>`+list.map((a,i)=>apCard(a,i+1,P.dev)).join(""):`<div class="empty">ไม่พบแอปที่ตรงกับเงื่อนไข</div>`}
+    ${android?`<div class="sec" style="padding:14px 18px"><b>ติดตั้ง APK บน Android ไม่ได้?</b><div class="soft" style="margin-top:4px">ตั้งค่า › ความปลอดภัย › อนุญาตให้ติดตั้งจากแหล่งที่ไม่รู้จัก (เปิดให้เบราว์เซอร์ที่ใช้โหลด) แล้วกดไฟล์ที่โหลดอีกครั้ง · ยังไม่ได้ ทักไลน์ซัพพอร์ตพร้อมแจ้งรุ่นมือถือ</div></div>`:""}
+    <div style="height:30px"></div></div>`;
+}
 function viewApps(){
-  if(!S.admin){ const u=((S.settings||{}).appsUrl||"").trim(); return `<div class="wrap state"><h2>หน้าโหลดแอป</h2><p>${u?"ส่งให้ลูกค้าได้เลย":"ยังไม่ได้ตั้งลิงก์ (หลังบ้าน)"}</p>${u?`<a class="btn primary" href="${esc(u)}" target="_blank" rel="noopener">เปิดหน้าโหลดแอป ↗</a> <button class="btn" data-copy="${esc(u)}">คัดลอก</button>`:""}</div>`; }
+  if(!S.admin||S.apView==="public") return viewAppsPublic();
   if(!S.A||(!S.A.loaded&&!S.A.loading&&!S.A.err)){ appsLoad(); return `<div class="wrap state"><p>กำลังโหลดรายการแอป…</p></div>`; }
   if(S.A.loading) return `<div class="wrap state"><p>กำลังโหลดรายการแอป…</p></div>`;
   if(S.A.err) return `<div class="wrap state"><p>โหลดไม่สำเร็จ: ${esc(S.A.err)}</p><button class="btn" data-app-reload>ลองใหม่</button></div>`;
@@ -2855,7 +2915,7 @@ function viewApps(){
   const share=`<div class="sec" style="background:var(--ink);color:#fff;border-color:var(--ink);padding:14px 16px;display:grid;gap:10px">
     <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap"><b style="font-family:var(--f-display);font-size:16px">ลิงก์หน้าโหลดสำหรับลูกค้า</b><span style="font-size:13px;color:#B8C0CC">ลิงก์สั้น ไม่มีแถบเตือนของ Google · ลูกค้าเห็นแค่แอปที่ "เผยแพร่"</span></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <input id="apps-url" value="${esc(url)}" placeholder="วางลิงก์ GitHub Pages เช่น https://xxx.github.io/apps/" style="flex:1;min-width:260px;background:#1A1E25;border:1px solid #3A4152;border-radius:8px;padding:8px 12px;color:#fff;font:inherit;font-family:var(--f-mono);font-size:13px">
+      <input id="apps-url" value="${esc(url)}" placeholder="ว่าง = ใช้หน้าโหลดแอปใน hub นี้ (?v=apps) หรือวางลิงก์หน้าแยก" style="flex:1;min-width:260px;background:#1A1E25;border:1px solid #3A4152;border-radius:8px;padding:8px 12px;color:#fff;font:inherit;font-family:var(--f-mono);font-size:13px">
       <button class="btn small" data-app-url-save style="background:#fff;color:var(--ink);border-color:#fff">บันทึกลิงก์</button>
       ${url?`<button class="btn small" data-copy="${esc(url)}" style="background:transparent;color:#fff;border-color:#3A4152">คัดลอกลิงก์</button><a class="btn small" href="https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=16&data=${encodeURIComponent(url)}" target="_blank" rel="noopener" style="background:transparent;color:#fff;border-color:#3A4152">QR สำหรับพิมพ์</a><button class="btn small" data-app-line style="background:#06C755;border-color:#06C755;color:#fff">ส่งลิงก์เข้าไลน์ทีม</button><a class="btn small" href="${esc(url)}" target="_blank" rel="noopener" style="background:transparent;color:#fff;border-color:#3A4152">เปิดดู ↗</a>`:""}
     </div>
@@ -2895,7 +2955,7 @@ function viewApps(){
   const plats=a=>Object.keys(PLAT).map(p=>a[p]?`<span class="chip ${a[p].id?"ok":""}" title="${esc(a[p].name||a[p].url||"")}">${PLAT[p].l.split(" ")[0]}${a[p].size?" · "+fmtMB(a[p].size):""}</span>`:"").join(" ");
   const rows=(A.apps||[]).map(a=>`<tr style="${String(a.status||"1")==="0"?"opacity:.55":""}"><td><span style="display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:${APP_COLORS[a.color]||APP_COLORS.blue};color:#fff;font-family:var(--f-display);font-weight:700;font-size:13px;vertical-align:middle">${esc(appInitials(a.name))}</span> <b>${esc(a.name)}</b><br><span class="soft">${esc(a.short||"")}</span></td><td style="font-size:12px">${plats(a)||"—"}<br><span class="soft">คู่มือ ${(a.manuals||[]).length} · คลิป ${(a.clips||[]).length}</span></td><td class="mono">${esc(a.version||"—")}<br><span class="soft">${esc(a.date||"")}</span></td><td class="mono">${(A.hits30||{})[a.id]||0}<br><span class="soft">รวม ${a.downloads||0}</span></td><td>${String(a.status||"1")==="0"?`<span class="chip">ซ่อน</span>`:`<span class="chip ok">เผยแพร่</span>`}</td><td style="white-space:nowrap"><button class="btn small" data-app-edit="${esc(a.id)}">แก้ / อัปโหลดใหม่</button> <button class="btn small" data-app-toggle="${esc(a.id)}">${String(a.status||"1")==="0"?"เผยแพร่":"ซ่อน"}</button> ${appLink(a.id)?`<button class="btn small" data-copy="${esc(appLink(a.id))}" title="${esc(appLink(a.id))}">ลิงก์แอปนี้</button> `:""}<button class="btn small danger" data-app-del="${esc(a.id)}">${A.del===a.id?"ยืนยันลบ?":"ลบ"}</button></td></tr>`).join("");
   return `<div class="wrap"><button class="back" data-go="">‹ กลับหน้าหลัก</button>
-   <div class="section-h"><h2>หน้าโหลดแอป · ${(A.apps||[]).length} แอป</h2><span style="display:flex;gap:6px"><button class="btn small" data-app-reload>รีเฟรช</button><button class="btn small primary" data-app-add>+ เพิ่มแอป</button></span></div>
+   <div class="section-h"><h2>หน้าโหลดแอป · ${(A.apps||[]).length} แอป</h2><span style="display:flex;gap:6px"><button class="btn small primary" data-ap-public>ดูแบบลูกค้า</button><button class="btn small" data-app-reload>รีเฟรช</button><button class="btn small primary" data-app-add>+ เพิ่มแอป</button></span></div>
    ${share}<div style="height:12px"></div>
    ${!url?`<div style="background:var(--amber-soft);color:var(--amber);border-radius:10px;padding:10px 14px;font-size:14px;margin-bottom:12px"><b>ยังไม่ได้ใส่ลิงก์หน้าโหลด</b> — อัปโหลดไฟล์ apps/index.html ขึ้น GitHub Pages แล้วนำลิงก์ที่ได้มาวางด้านบน ปุ่มแชร์/QR จะใช้ลิงก์นั้น</div>`:""}
    ${form}
