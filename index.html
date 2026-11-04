@@ -24,8 +24,8 @@ const API = "https://script.google.com/macros/s/AKfycbz6zesxp1fKOTvfhJwSLwuHYQRw
 }
 /* ธีมสว่างเป็นค่าเริ่มต้นเสมอ (ตาม Mockup แบบ A) — ธีมมืดเปิดได้ด้วย data-theme="dark" เท่านั้น */
 :root[data-theme="dark"]{
-  --bg:#101318; --paper:#1A1E25; --paper-2:#20252D; --ink:#E7EBF0; --muted:#9AA4B1; --line:#2E353F;
-  --accent:#7D9BFF; --accent-soft:#1E2846; --accent-ink:#0B1230;
+  --bg:#0B0B0C; --paper:#141416; --paper-2:#1B1B1F; --ink:#F2F2F4; --muted:#9A9AA3; --line:#26262B;
+  --accent:#8AB4FF; --accent-soft:#1A2238; --accent-ink:#0B0B0C;
   --warn:#FF8C91; --warn-soft:#3A1D20; --ok:#5ED39A; --ok-soft:#14301F; --amber:#F2B45C; --amber-soft:#3A2A12;
   --ill-body:#3A4350; --ill-dark:#0F1217; --ill-paper:#E7EBF0; --ill-line:#6E7A88; color-scheme:dark}
 *{box-sizing:border-box}
@@ -366,6 +366,72 @@ body{margin:0}
 .lvt.now{border-color:var(--accent);background:var(--accent-soft)}.lvt.now .num{background:var(--accent);color:#fff;border-color:var(--accent)}
 .lvt.lock{opacity:.6}
 @media (max-width:820px){.lvls{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ===== Editorial layer (แรงบันดาลใจจากเว็บสไตล์ dark-minimal): หัวข้อใหญ่ เลขกำกับส่วน ระยะห่างกว้าง ปุ่มขาวบนพื้นมืด ===== */
+:root[data-theme="dark"] .btn.primary{background:#fff;border-color:#fff;color:#0B0B0C}
+:root[data-theme="dark"] .btn.primary:hover{background:#E6E6EA;border-color:#E6E6EA}
+:root[data-theme="dark"] .top{background:rgba(11,11,12,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+:root[data-theme="dark"] .brand-mark{background:#fff;color:#0B0B0C}
+:root[data-theme="dark"] .search{background:#111113}
+:root[data-theme="dark"] .cat:hover,:root[data-theme="dark"] .label:hover,:root[data-theme="dark"] .ltile:hover{border-color:#3A3A42;background:#18181B}
+:root[data-theme="dark"] .ap-hero{background:#0B0B0C;border-bottom:1px solid var(--line)}
+.hero2{padding:clamp(40px,8vw,96px) 0 clamp(28px,5vw,56px);display:grid;gap:22px;max-width:980px}
+.hero2 .eyebrow{display:flex;gap:10px;align-items:center}
+.hero2 .eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 0 4px var(--ok-soft)}
+.hero2 h1{font-size:clamp(36px,6.4vw,72px);font-weight:700;line-height:1.02;letter-spacing:-.02em}
+.hero2 h1 em{font-style:normal;color:var(--muted)}
+.hero2 p{color:var(--muted);font-size:clamp(15px,1.6vw,19px);max-width:62ch;margin:0;line-height:1.6}
+.hero2 .cta{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.hero2 .cta .btn{padding:12px 20px;font-size:15px;border-radius:12px}
+.hero2 .meta{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.hero2 .meta b{color:var(--ink);font-family:var(--f-display);font-size:18px;margin-right:4px}
+.sec-ed{margin:clamp(40px,7vw,80px) 0 18px;display:grid;gap:8px}
+.sec-ed .num{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);letter-spacing:.08em}
+.sec-ed h2{font-size:clamp(24px,3.4vw,38px);font-weight:700;letter-spacing:-.01em;line-height:1.1}
+.sec-ed p{margin:0;color:var(--muted);max-width:70ch}
+.sec-ed .row{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap}
+.cats{gap:14px}
+.cat{padding:16px;border-radius:16px;gap:6px}
+.cat svg{height:104px}
+.cat .nm{font-size:17px}
+.cat:hover{transform:translateY(-2px)}
+.label{border-radius:14px 14px 0 0}
+.label:hover{transform:translateY(-2px)}
+.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.tool{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:22px;text-align:left;display:grid;gap:8px;align-content:start;color:var(--ink);transition:border-color .15s,transform .15s,background .15s;min-height:168px}
+.tool:hover{transform:translateY(-2px);border-color:#3A3A42}
+.tool .k{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.08em}
+.tool b{font-family:var(--f-display);font-size:20px;line-height:1.15}
+.tool span{color:var(--muted);font-size:14px}
+.tool .go{margin-top:auto;font-size:13.5px;font-weight:600;color:var(--ink)}
+.foot{border-top:1px solid var(--line);margin-top:clamp(48px,8vw,96px);padding:28px 0 40px;display:flex;gap:18px;flex-wrap:wrap;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+.foot .links{display:flex;gap:14px;flex-wrap:wrap}
+.foot button{background:none;border:0;color:var(--muted);padding:0;font-size:13px}
+.foot button:hover{color:var(--ink)}
+.theme-btn{border:1px solid var(--line);background:var(--paper);border-radius:999px;width:38px;height:38px;display:grid;place-items:center;font-size:16px;flex:none}
+/* พื้นหลังขยับ: หมอกแสงลอยช้า ๆ + กริดจาง + ผนังไอคอนสินค้าลอยอยู่ด้านขวาของ hero */
+.hero-wrap{position:relative;isolation:isolate;overflow:hidden;margin:0 calc(50% - 50vw);padding:0 calc(50vw - 50%)}
+.bgfx{position:absolute;inset:-20% -10%;z-index:-2;pointer-events:none}
+.bgfx .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;mix-blend-mode:screen;animation:drift 22s ease-in-out infinite alternate}
+.bgfx .b1{width:46vw;height:46vw;left:-8%;top:-10%;background:radial-gradient(circle at 30% 30%,#3B5BFF 0%,rgba(59,91,255,0) 65%)}
+.bgfx .b2{width:40vw;height:40vw;right:-6%;top:5%;background:radial-gradient(circle at 60% 40%,#8A4DFF 0%,rgba(138,77,255,0) 65%);animation-duration:28s;animation-delay:-9s}
+.bgfx .b3{width:34vw;height:34vw;left:35%;bottom:-20%;background:radial-gradient(circle at 50% 50%,#17C3B2 0%,rgba(23,195,178,0) 65%);animation-duration:26s;animation-delay:-16s}
+.bgfx .grid{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:56px 56px;opacity:.35;mask-image:radial-gradient(ellipse at 50% 30%,#000 20%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse at 50% 30%,#000 20%,transparent 75%)}
+:root[data-theme="light"] .bgfx .blob,:root:not([data-theme="dark"]) .bgfx .blob{opacity:.28;mix-blend-mode:multiply}
+@keyframes drift{0%{transform:translate(0,0) scale(1)}50%{transform:translate(6vw,-4vh) scale(1.12)}100%{transform:translate(-4vw,5vh) scale(.95)}}
+.hero2{position:relative;z-index:1}
+.iconwall{position:absolute;right:calc(50vw - 50% + 8px);top:50%;transform:translateY(-52%);z-index:0;display:grid;grid-template-columns:repeat(4,76px);gap:14px;pointer-events:none;perspective:900px}
+.iconwall .tile{width:76px;height:76px;border-radius:20px;background:linear-gradient(160deg,var(--paper-2),var(--paper));border:1px solid var(--line);box-shadow:0 20px 40px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);display:grid;place-items:center;animation:bob 6s ease-in-out infinite;opacity:.95}
+.iconwall .tile svg{width:60px;height:46px}
+.iconwall .tile:nth-child(odd){animation-duration:7.5s}.iconwall .tile:nth-child(3n){animation-delay:-2s}.iconwall .tile:nth-child(4n){animation-delay:-4s;animation-duration:8.5s}.iconwall .tile:nth-child(5n){animation-delay:-1s}
+.iconwall .tile.ghost{opacity:.35;box-shadow:none}
+@keyframes bob{0%,100%{transform:translateY(0) rotateX(0)}50%{transform:translateY(-10px) rotateX(4deg)}}
+@media (max-width:1100px){.iconwall{grid-template-columns:repeat(3,64px);gap:10px;opacity:.5}.iconwall .tile{width:64px;height:64px;border-radius:16px}.iconwall .tile svg{width:50px;height:38px}}
+@media (max-width:820px){.iconwall{display:none}}
+.cat svg{transition:transform .3s cubic-bezier(.2,.8,.2,1)}.cat:hover svg{transform:translateY(-4px) scale(1.04)}
+.tool:hover .k{color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.bgfx .blob,.iconwall .tile{animation:none}.cat svg{transition:none}}
+@media (max-width:640px){.hero2{padding-top:32px}.hero2 h1{font-size:34px}.cat svg{height:84px}.bgfx .grid{background-size:40px 40px}}
 </style>
 </head><body>
 <div id="app"></div>
@@ -553,11 +619,12 @@ function render(){
     <button class="btn ${S.route.v.startsWith("learn")?"primary":""}" data-go="learn">ศูนย์เรียนรู้</button>
     <button class="btn ${S.route.v==="warranty"?"primary":""}" data-go="warranty">ประกัน</button>
     <button class="btn ${S.route.v==="apps"?"primary":""}" data-go="apps">โหลดแอป</button>
+    <button class="theme-btn" data-theme-toggle title="สลับธีมสว่าง/มืด" aria-label="สลับธีม">${document.documentElement.getAttribute("data-theme")==="dark"?"☀":"☾"}</button>
     ${S.canEdit?`<button class="btn ${S.admin?"admin-on":""}" id="adminToggle">${S.admin?"กำลังแก้ไข · ปิด":"หลังบ้าน"}</button>`:""}
   </div></header>
   ${S.admin?`<div class="admin-bar"><div class="wrap">โหมดหลังบ้าน: เอาเมาส์ชี้ส่วนไหนแล้วกด ✎ เพื่อแก้ตรงนั้นได้เลย (รูป สเปก คลิป วิธีแก้ปัญหา ประกัน)
     <span style="flex:1"></span><button class="btn small" data-new-prod="${esc(S.route.v==="cat"?S.route.id:"")}">+ เพิ่มสินค้า</button><button class="btn small" data-new-cat>+ เพิ่มหมวด</button><button class="btn small" data-go="import">🌐 ร่างจากเว็บ</button><button class="btn small" data-go="apps">หน้าโหลดแอป</button><button class="btn small ${(S.settings||{}).learnOpen==="0"?"danger":""}" data-set-learn="${(S.settings||{}).learnOpen==="0"?"1":"0"}" title="เปิด/ปิดศูนย์เรียนรู้ให้พนักงาน">ศูนย์เรียนรู้: ${(S.settings||{}).learnOpen==="0"?"ปิดอยู่ · กดเพื่อเปิด":"เปิดอยู่ · กดเพื่อปิด"}</button></div></div>`:""}
-  <main>${main}</main>
+  <main>${main}${S.route.v==="home"||S.route.v==="cat"||S.route.v==="prod"||S.route.v==="warranty"?footerHtml():""}</main>
   ${S.compare.length && S.route.v!=="compare" ? `<div class="pad-bottom"></div><div class="tray"><div class="wrap">
      <span class="mono" style="font-size:13px">เปรียบเทียบ ${S.compare.length} รุ่น:</span>
      <span style="flex:1;min-width:0;font-size:13px;opacity:.85">${S.compare.map(id=>esc(prodById(id)?.name||id)).join(" · ")}</span>
@@ -574,24 +641,37 @@ function render(){
   bind(); fitPics();
 }
 
+const THEME_KEY="ep-theme";
+function themeInit(){ let t="dark"; try{ t=localStorage.getItem(THEME_KEY)||"dark"; }catch(e){} document.documentElement.setAttribute("data-theme",t); }
+function themeToggle(){ const cur=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark"; document.documentElement.setAttribute("data-theme",cur); try{ localStorage.setItem(THEME_KEY,cur); }catch(e){} render(); }
+themeInit();
+function footerHtml(){ return `<div class="wrap"><div class="foot"><div><b style="font-family:var(--f-display);color:var(--ink)">EasyPrint</b> · ศูนย์ข้อมูลสินค้าสำหรับทีมซัพพอร์ต</div><div class="links"><button data-go="">หน้าแรก</button><button data-go="learn">ศูนย์เรียนรู้</button><button data-go="warranty">ประกัน</button><button data-go="apps">โหลดแอป</button><button data-go="compare">เทียบรุ่น</button></div><div>© ${new Date().getFullYear()} EasyPrint Thailand</div></div></div>`; }
 function viewHome(){
-  const total=S.prods.length;
+  const total=S.prods.length, fixes=S.prods.reduce((a,p)=>a+(p.troubles||[]).length,0);
   const cats=[...S.cats].sort((a,b)=>(a.order??99)-(b.order??99));
+  const wall=[...cats,...cats].slice(0,12);
   return `<div class="wrap">
-   <section class="hero">
-     <div><span class="eyebrow">EasyPrinter Thailand</span>
-       <h1>ข้อมูลสินค้าครบในที่เดียว ดูง่าย ตอบลูกค้าได้ทันที</h1>
-       <p>สเปก จุดต่างของแต่ละรุ่น วิธีติดตั้ง คลิปสอน วิธีแก้ปัญหายอดฮิต เงื่อนไขประกัน และการดูแลรักษา จัดแยกตามหมวดสินค้า</p></div>
-     <div class="hero-stats"><div class="stat"><div class="n mono">${S.cats.length}</div><div class="l">หมวดสินค้า</div></div>
-       <div class="stat"><div class="n mono">${total}</div><div class="l">รุ่น / ซีรีส์</div></div>
-       <div class="stat"><div class="n mono">${S.prods.reduce((a,p)=>a+(p.troubles||[]).length,0)}</div><div class="l">วิธีแก้ปัญหา</div></div></div>
-   </section>
-   <div class="section-h"><h2>เลือกหมวดสินค้า</h2><span class="soft">ภาพประกอบเป็นภาพจำลองของประเภทสินค้า</span></div>
+   <div class="hero-wrap"><div class="bgfx"><div class="grid"></div><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+   ${wall.length?`<div class="iconwall" aria-hidden="true">${wall.map((c,i)=>`<div class="tile ${i>=cats.length?"ghost":""}">${ill(c.icon||c.id)}</div>`).join("")}</div>`:""}
+   <section class="hero2">
+     <span class="eyebrow"><i></i>EasyPrint Thailand · ศูนย์ข้อมูลสินค้า</span>
+     <h1>ข้อมูลสินค้าครบ<br>ในที่เดียว. <em>ตอบลูกค้าได้ทันที.</em></h1>
+     <p>สเปก จุดต่างของแต่ละรุ่น วิธีติดตั้ง คลิปสอน วิธีแก้ปัญหายอดฮิต เงื่อนไขประกัน และการดูแลรักษา จัดแยกตามหมวดสินค้า อัปเดตโดยทีมซัพพอร์ต</p>
+     <div class="cta"><button class="btn primary" data-focus-search>ค้นหารุ่นสินค้า</button><button class="btn" data-go="learn">ศูนย์เรียนรู้</button><button class="btn" data-go="apps">โหลดแอป</button></div>
+     <div class="meta"><span><b>${S.cats.length}</b>หมวดสินค้า</span><span><b>${total}</b>รุ่น / ซีรีส์</span><span><b>${fixes}</b>วิธีแก้ปัญหา</span></div>
+   </section></div>
+   <div class="sec-ed"><span class="num">01 /</span><div class="row"><h2>${S.cats.length} หมวด. ครบทุกหน้าร้าน.</h2><span class="soft">ภาพประกอบเป็นภาพจำลองของประเภทสินค้า</span></div></div>
    ${cats.length?`<div class="cats">${cats.map(c=>`<button class="cat" data-go="c-${esc(c.id)}">${ill(c.icon||c.id)}<span class="nm">${esc(c.name)}</span><span class="ct">${prodsOf(c.id).length} รุ่น · ${esc(c.short||"")}</span></button>`).join("")}</div>`
      :`<div class="empty">ยังไม่มีหมวดสินค้า${S.canEdit?" กด หลังบ้าน แล้วเพิ่มหมวดแรกได้เลย":""}</div>`}
-   ${featured().length?`<div class="section-h"><h2>รุ่นที่ซัพพอร์ตถามบ่อย</h2><span class="soft">เรียงตามจำนวนวิธีแก้ปัญหาที่บันทึกไว้</span></div>
+   ${featured().length?`<div class="sec-ed"><span class="num">02 /</span><div class="row"><h2>รุ่นที่ซัพพอร์ตถามบ่อย</h2><span class="soft">เรียงตามจำนวนวิธีแก้ปัญหาที่บันทึกไว้</span></div></div>
    <div class="grid">${featured().map(card).join("")}</div>`:""}
-   <div style="height:32px"></div>
+   <div class="sec-ed"><span class="num">03 /</span><h2>เครื่องมือสำหรับทีม</h2><p>ทุกอย่างที่ต้องใช้ตอนคุยกับลูกค้า อยู่ห่างแค่คลิกเดียว</p></div>
+   <div class="tools">
+     <button class="tool" data-go="learn"><span class="k">LEARN</span><b>ศูนย์เรียนรู้</b><span>แบบทดสอบ Flashcard จำลองติดตั้ง และคุยกับลูกค้า — ฝึกให้ตอบได้โดยไม่ต้องเปิดดู</span><span class="go">เริ่มเรียน ›</span></button>
+     <button class="tool" data-go="warranty"><span class="k">WARRANTY</span><b>ประกัน & เงื่อนไข</b><span>เงื่อนไขร่วมของทุกหมวด และรุ่นที่มีเงื่อนไขเฉพาะ รวมในหน้าเดียว</span><span class="go">ดูเงื่อนไข ›</span></button>
+     <button class="tool" data-go="compare"><span class="k">COMPARE</span><b>เทียบรุ่น</b><span>วางสเปกข้างกันสูงสุด 4 รุ่น พร้อมคำอธิบายว่ารุ่นไหนเหมาะกับลูกค้าแบบไหน</span><span class="go">เลือกรุ่นเทียบ ›</span></button>
+     <button class="tool" data-go="apps"><span class="k">APPS</span><b>โหลดแอป</b><span>ลิงก์ดาวน์โหลด คู่มือ และคลิปสอนของทุกแอป ส่งให้ลูกค้าได้เลย</span><span class="go">เปิดหน้าโหลด ›</span></button>
+   </div>
   </div>`;
 }
 
@@ -1655,7 +1735,7 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
 });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-app-icon-rm],[data-app-icon-apk],[data-app-img-rm],[data-app-img-url],[data-ap-copy],[data-ap-plat],[data-ap-all],[data-ap-reload],[data-ap-admin],[data-ap-public],[data-ap-hit],[data-imp-fetch],[data-imp-use],[data-imp-save],[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
+  const t=ev.target.closest("[data-theme-toggle],[data-focus-search],[data-app-icon-rm],[data-app-icon-apk],[data-app-img-rm],[data-app-img-url],[data-ap-copy],[data-ap-plat],[data-ap-all],[data-ap-reload],[data-ap-admin],[data-ap-public],[data-ap-hit],[data-imp-fetch],[data-imp-use],[data-imp-save],[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
   if(!t) return; const d=t.dataset;
   if(d.learnCards!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"cards",topic:d.learnCards,prod:d.prod||""}; go("learn"); return; } startCards(d.learnCards,d.prod||""); return; }
   if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } let o=null; try{ o=d.opt?JSON.parse(d.opt):null; }catch(e){} startQuiz(d.learnQuiz,d.prod||"",o); return; }
@@ -1671,6 +1751,8 @@ document.addEventListener("click",ev=>{
   if(d.learnDel!==undefined){ if(S.lfDel!==d.learnDel){ S.lfDel=d.learnDel; render(); return; } const [kind,id]=d.learnDel.split("|"); learnDel(kind,id); return; }
   if(d.lfParse!==undefined){ lfParse(); return; }
   if(d.bankDraft!==undefined){ draftOpen(); return; }
+  if(d.themeToggle!==undefined){ themeToggle(); return; }
+  if(d.focusSearch!==undefined){ const q=$("#q"); if(q){ q.focus(); q.scrollIntoView({block:"center"}); } return; }
   if(d.appIconRm!==undefined){ appCollect(); S.A.form.icon=""; render(); return; }
   if(d.appIconApk!==undefined){ flash("เลือกไฟล์ APK อีกครั้งในช่อง Android เพื่อดึงไอคอน (ไฟล์เดิมบน Drive ไม่ถูกโหลดกลับมา)"); return; }
   if(d.appImgRm!==undefined){ appCollect(); S.A.form.images.splice(+d.appImgRm,1); render(); return; }
