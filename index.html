@@ -398,20 +398,29 @@ body{margin:0}
 .label{border-radius:14px 14px 0 0}
 .label:hover{transform:translateY(-2px)}
 .tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
-.fx-prod{background:var(--paper);border:1px solid var(--line);border-radius:16px;overflow:hidden}
-.fx-prod>summary{list-style:none;cursor:pointer;display:flex;gap:12px;align-items:center;padding:14px 18px;flex-wrap:wrap}
-.fx-prod>summary::-webkit-details-marker{display:none}
-.fx-prod>summary b{font-family:var(--f-display);font-size:18px}
-.fx-prod>summary .soft{font-size:13px}
-.fx-prod[open]>summary{border-bottom:1px solid var(--line)}
-.fx-list{padding:8px 12px 12px;display:grid;gap:8px}
-.fx-item{border:1px solid var(--line);border-radius:12px;background:var(--paper-2)}
-.fx-item>summary{list-style:none;cursor:pointer;padding:10px 14px;font-weight:600;display:flex;gap:8px;align-items:center}
+.fx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.fx-tile{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:12px 12px 14px;text-align:center;display:grid;gap:6px;color:var(--ink);animation:rise .5s cubic-bezier(.2,.8,.2,1) both;transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .2s,background .2s}
+.fx-tile:hover{transform:translateY(-4px);border-color:#3A3A42;background:var(--paper-2)}
+.fx-pic{display:grid;place-items:center;height:110px;border-radius:12px;background:var(--paper-2);overflow:hidden}
+.fx-pic img{width:100%;height:100%;object-fit:contain;transition:transform .35s cubic-bezier(.2,.8,.2,1)}.fx-pic svg{width:90%;height:90px}
+.fx-tile:hover .fx-pic img,.fx-tile:hover .fx-pic svg{transform:scale(1.06)}
+.fx-nm{font-weight:700;font-size:14px;line-height:1.25}
+.fx-ct{font-size:12px;color:var(--muted)}.fx-ct b{color:var(--ink)}
+.fx-badge{position:absolute;top:8px;right:8px;background:var(--amber);color:#fff;border-radius:999px;min-width:22px;height:22px;display:grid;place-items:center;font-size:12px;font-weight:700;padding:0 6px}
+.fx-detail{animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+.fx-dhead{display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:14px 18px;margin-bottom:12px}
+.fx-dpic{width:96px;height:96px;border-radius:14px;background:var(--paper-2);display:grid;place-items:center;overflow:hidden;flex:none}.fx-dpic img{width:100%;height:100%;object-fit:contain}.fx-dpic svg{width:86px;height:70px}
+.fx-leds{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}.fx-leds .chip{display:inline-flex;gap:6px;align-items:center;padding:5px 10px;font-size:12.5px}
+.fx-items{display:grid;gap:8px}
+.fx-item{border:1px solid var(--line);border-radius:14px;background:var(--paper);animation:rise .45s cubic-bezier(.2,.8,.2,1) both}
+.fx-item>summary{list-style:none;cursor:pointer;padding:12px 16px;font-weight:600;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .fx-item>summary::-webkit-details-marker{display:none}
-.fx-item>summary::before{content:"›";color:var(--muted);transition:transform .2s;display:inline-block}
+.fx-item>summary::before{content:"›";color:var(--muted);transition:transform .2s;display:inline-block;font-size:18px;line-height:1}
 .fx-item[open]>summary::before{transform:rotate(90deg)}
-.fx-item .sec{margin:0 12px 12px;border:0;background:transparent;padding:0}
+.fx-item .sec{margin:0 14px 14px;border:0;background:transparent;padding:0}
 .fx-item .sec h3{display:none}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.fx-tile,.fx-detail,.fx-item{animation:none}}
 mark.fx{background:var(--amber-soft);color:var(--amber);border-radius:3px;padding:0 2px}
 .tool{background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:22px;text-align:left;display:grid;gap:8px;align-content:start;color:var(--ink);transition:border-color .15s,transform .15s,background .15s;min-height:168px}
 .tool:hover{transform:translateY(-2px);border-color:#3A3A42}
@@ -819,27 +828,37 @@ async function impSave(){ impCollect(); const W=S.W; const p=prodById(W.prod); i
   try{ applyData(await run("saveRow",S.pw,"prod",prodToRow(obj),{send:W.notify,note:"ร่างจากเว็บ: "+W.url})); W.saving=false; flash(`บันทึกเข้า ${p.name} แล้ว (${[...new Set(done)].join(", ")})`); go("p-"+p.id); }
   catch(err){ W.saving=false; flash("บันทึกไม่สำเร็จ: "+errMsg(err)); render(); } }
 
-/* ---------- รวมปัญหาด่วนของทุกรุ่น ---------- */
+/* ---------- รวมปัญหาด่วนของทุกรุ่น: กริดรูปเครื่อง → กดแล้วเห็นวิธีแก้ (หลังบ้านแก้ตรงนั้นได้) ---------- */
 function viewFixes(){
-  const F=S.FX||(S.FX={q:"",cat:"",open:{}}); const q=F.q.trim().toLowerCase();
+  const F=S.FX||(S.FX={q:"",cat:"",sel:""}); const q=F.q.trim().toLowerCase();
   const cats=[...S.cats].sort((a,b)=>(a.order??99)-(b.order??99));
-  const hl=t=>{ t=esc(t); if(!q) return t; const i=t.toLowerCase().indexOf(esc(q)); return i<0?t:t.slice(0,i)+"<mark class=\"fx\">"+t.slice(i,i+q.length)+"</mark>"+t.slice(i+q.length); };
   const match=t=>!q||(t.title+" "+(t.lines||[]).join(" ")).toLowerCase().includes(q);
-  const prods=S.prods.filter(p=>(p.troubles||[]).length&&(!F.cat||p.cat===F.cat)).map(p=>({p,items:(p.troubles||[]).filter(match)})).filter(x=>x.items.length)
-    .sort((a,b)=>b.items.length-a.items.length||String(a.p.name).localeCompare(b.p.name));
-  const total=prods.reduce((a,x)=>a+x.items.length,0);
-  return `<div class="wrap">
-   <div class="sec-ed" style="margin-top:28px"><span class="num">FIX /</span><div class="row"><h2>แก้ปัญหาด่วน ทุกรุ่น</h2><span class="soft">${total} วิธีแก้ · ${prods.length} รุ่น</span></div><p>พิมพ์อาการที่ลูกค้าบอก เช่น "ไฟแดง" "ต่างดาว" "ไม่ตัดกระดาษ" แล้วกดเปิดรุ่นที่ตรง</p></div>
-   <div class="side" style="margin-bottom:14px;display:grid;gap:10px">
+  const hl=t=>{ t=esc(t); if(!q) return t; const i=t.toLowerCase().indexOf(esc(q)); return i<0?t:t.slice(0,i)+"<mark class=\"fx\">"+t.slice(i,i+q.length)+"</mark>"+t.slice(i+q.length); };
+  const pic=p=>{ const c=catById(p.cat)||{}; return p.images&&p.images.length?`<img src="${esc(imgUrl(p.images[0]))}" alt="" loading="lazy">`:ill(c.icon||p.cat); };
+  const all=S.prods.filter(p=>(p.troubles||[]).length||S.admin).map(p=>({p,n:(p.troubles||[]).filter(match).length,total:(p.troubles||[]).length}));
+  const list=all.filter(x=>(!F.cat||x.p.cat===F.cat)&&(!q||x.n>0||String(x.p.name).toLowerCase().includes(q))).sort((a,b)=>b.n-a.n||b.total-a.total||String(a.p.name).localeCompare(b.p.name));
+  const sel=F.sel?prodById(F.sel):null;
+  const head=`<div class="sec-ed" style="margin-top:28px"><span class="num">FIX /</span><div class="row"><h2>แก้ปัญหาด่วน ทุกรุ่น</h2><span class="soft">${S.prods.reduce((a,p)=>a+(p.troubles||[]).length,0)} วิธีแก้ · ${all.filter(x=>x.total).length} รุ่น</span></div><p>กดรูปเครื่องเพื่อดูอาการและวิธีแก้ของรุ่นนั้น หรือพิมพ์อาการที่ลูกค้าบอก เช่น "ไฟแดง" "ต่างดาว" "ไม่ตัดกระดาษ"</p></div>
+   <div class="side" style="margin-bottom:16px;display:grid;gap:10px">
      <label class="search" style="max-width:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="fx-q" placeholder="ค้นหาอาการ / วิธีแก้ / ชื่อรุ่น" value="${esc(F.q)}" autocomplete="off"></label>
-     <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn small ${F.cat?"":"primary"}" data-fx-cat="">ทุกหมวด</button>${cats.filter(c=>S.prods.some(p=>p.cat===c.id&&(p.troubles||[]).length)).map(c=>`<button class="btn small ${F.cat===c.id?"primary":""}" data-fx-cat="${esc(c.id)}">${esc(c.name)}</button>`).join("")}</div>
-   </div>
-   ${prods.length?`<div style="display:grid;gap:10px">${prods.map(({p,items})=>{ const open=q?true:!!F.open[p.id]; return `<details class="fx-prod" ${open?"open":""} data-fx-prod="${esc(p.id)}"><summary><b class="mono">${esc(p.name)}</b><span class="soft">${esc((catById(p.cat)||{}).name||"")} · ${items.length} อาการ</span><span style="flex:1"></span><button class="btn small" data-go="p-${esc(p.id)}" onclick="event.preventDefault()">หน้ารุ่น ›</button></summary>
-     <div class="fx-list">${items.map(t=>`<details class="fx-item" ${q?"open":""}><summary>${hl(t.title||"(ไม่มีชื่อ)")}${(t.lines||[]).length?`<span class="soft" style="font-weight:400;font-size:12.5px">${(t.lines||[]).length} ขั้น</span>`:""}</summary>${secBlock(t,/ระวัง|ห้าม/.test(t.title)?"warn":"").replace(/<li>([\s\S]*?)<\/li>/g,(m,x)=>"<li>"+(q?x.replace(new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i"),m2=>"<mark class=\"fx\">"+m2+"</mark>"):x)+"</li>")}</details>`).join("")}</div></details>`; }).join("")}</div>`:`<div class="empty">ไม่พบอาการที่ตรงกับ "${esc(F.q)}"</div>`}
+     <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn small ${F.cat?"":"primary"}" data-fx-cat="">ทุกหมวด</button>${cats.filter(c=>all.some(x=>x.p.cat===c.id)).map(c=>`<button class="btn small ${F.cat===c.id?"primary":""}" data-fx-cat="${esc(c.id)}">${esc(c.name)}</button>`).join("")}</div>
+   </div>`;
+  if(sel){
+    const c=catById(sel.cat)||{}; const items=(sel.troubles||[]).filter(match); const leds=(sel.leds||[]);
+    const body=items.length?`<div class="fx-items">${items.map((t,i)=>`<details class="fx-item" style="animation-delay:${Math.min(i,10)*45}ms" ${q||i<3?"open":""}><summary>${hl(t.title||"(ไม่มีชื่อ)")}<span class="soft" style="font-weight:400;font-size:12.5px">${(t.lines||[]).length} ขั้น${(t.imgs||[]).length?` · ${(t.imgs||[]).length} รูป`:""}</span></summary>${secBlock(t,/ระวัง|ห้าม/.test(t.title)?"warn":"")}</details>`).join("")}</div>`:`<div class="empty">${q?`ไม่พบอาการ "${esc(F.q)}" ในรุ่นนี้`:"รุ่นนี้ยังไม่มีวิธีแก้ปัญหา"+(S.admin?" — กด ✎ เพื่อเพิ่ม":"")}</div>`;
+    return `<div class="wrap">${head}
+     <div class="fx-detail">
+       <div class="fx-dhead"><button class="btn small" data-fx-sel="">‹ ทุกรุ่น</button><div class="fx-dpic">${pic(sel)}</div><div style="min-width:0;flex:1"><div class="soft" style="font-size:13px">${esc(c.name||"")}</div><h2 class="mono" style="font-size:clamp(22px,3vw,32px)">${esc(sel.name)}</h2><div class="soft">${esc(sel.tagline||"")}</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn small" data-go="p-${esc(sel.id)}">หน้ารุ่น ›</button><button class="btn small" data-go="learn-quiz" data-learn-quiz="prod" data-prod="${esc(sel.id)}">ทำแบบทดสอบ</button></div></div>
+       ${leds.length?`<div class="fx-leds">${leds.map(l=>{ const base=String(l.color||"red").replace("-blink",""); const col={red:"var(--warn)",purple:"#8A3FD1",blue:"var(--accent)",green:"var(--ok)"}; return `<span class="chip" title="${esc(l.fix||"")}"><span class="dot ${/blink/.test(l.color||"")?"blink":""}" style="background:${col[base]||col.red};width:10px;height:10px"></span>${esc(l.name)} <span class="soft">— ${esc(l.fix||"")}</span></span>`; }).join("")}</div>`:""}
+       ${edWrap("prod",sel.id,"troubles",body)}
+     </div>
+     <div style="height:30px"></div></div>`;
+  }
+  return `<div class="wrap">${head}
+   ${list.length?`<div class="fx-grid">${list.map((x,i)=>`<button class="fx-tile" style="animation-delay:${Math.min(i,24)*35}ms" data-fx-sel="${esc(x.p.id)}"><span class="fx-pic">${pic(x.p)}</span><span class="fx-nm mono">${esc(x.p.name)}</span><span class="fx-ct">${q?`<b>${x.n}</b> อาการที่ตรง`:x.total?`${x.total} อาการ`:`<span class="soft">ยังไม่มีวิธีแก้</span>`}</span>${x.n&&q?`<span class="fx-badge">${x.n}</span>`:""}</button>`).join("")}</div>`:`<div class="empty">ไม่พบรุ่นที่มีอาการ "${esc(F.q)}"</div>`}
    <div style="height:30px"></div></div>`;
 }
 document.addEventListener("input",ev=>{ if(ev.target.id==="fx-q"&&S.FX){ S.FX.q=ev.target.value; const pos=ev.target.selectionStart; render(); const n=$("#fx-q"); if(n){ n.focus(); n.setSelectionRange(pos,pos); } } });
-document.addEventListener("toggle",ev=>{ const d=ev.target; if(d.matches&&d.matches("[data-fx-prod]")&&S.FX&&!S.FX.q){ S.FX.open[d.dataset.fxProd]=d.open; } },true);
 
 /* ---------- หน้ารวมประกัน: เห็นเงื่อนไขทุกหมวด/ทุกรุ่นในที่เดียว แก้แล้วเลือกนำไปใส่รุ่นอื่นได้ ---------- */
 function viewWarranty(){
@@ -1784,7 +1803,7 @@ document.addEventListener("submit",ev=>{
   if(ev.target.id==="lf"){ ev.preventDefault(); learnFormSave(); }
 });
 document.addEventListener("click",ev=>{
-  const t=ev.target.closest("[data-fx-cat],[data-theme-toggle],[data-focus-search],[data-app-icon-rm],[data-app-icon-apk],[data-app-img-rm],[data-app-img-url],[data-ap-copy],[data-ap-plat],[data-ap-all],[data-ap-reload],[data-ap-admin],[data-ap-public],[data-ap-hit],[data-imp-fetch],[data-imp-use],[data-imp-save],[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
+  const t=ev.target.closest("[data-fx-sel],[data-fx-cat],[data-theme-toggle],[data-focus-search],[data-app-icon-rm],[data-app-icon-apk],[data-app-img-rm],[data-app-img-url],[data-ap-copy],[data-ap-plat],[data-ap-all],[data-ap-reload],[data-ap-admin],[data-ap-public],[data-ap-hit],[data-imp-fetch],[data-imp-use],[data-imp-save],[data-quiz-pick],[data-qp-close],[data-qp-cat],[data-qp-clear],[data-qp-start],[data-lf-parse],[data-lf-bulk-save],[data-lf-bulk-rm],[data-bank-draft],[data-df-close],[data-df-save],[data-df-skip],[data-df-redo],[data-df-more],[data-learn-cards],[data-learn-quiz],[data-learn-flip],[data-learn-grade],[data-learn-pick],[data-learn-next],[data-learn-finish],[data-learn-user],[data-learn-reload],[data-learn-add],[data-learn-edit],[data-learn-del],[data-lf-close]");
   if(!t) return; const d=t.dataset;
   if(d.learnCards!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"cards",topic:d.learnCards,prod:d.prod||""}; go("learn"); return; } startCards(d.learnCards,d.prod||""); return; }
   if(d.learnQuiz!==undefined){ if(!S.L.loaded){ S.L.pending={kind:"quiz",mode:d.learnQuiz,prod:d.prod||""}; go("learn"); return; } let o=null; try{ o=d.opt?JSON.parse(d.opt):null; }catch(e){} startQuiz(d.learnQuiz,d.prod||"",o); return; }
@@ -1801,7 +1820,8 @@ document.addEventListener("click",ev=>{
   if(d.lfParse!==undefined){ lfParse(); return; }
   if(d.bankDraft!==undefined){ draftOpen(); return; }
   if(d.themeToggle!==undefined){ themeToggle(); return; }
-  if(d.fxCat!==undefined){ S.FX=S.FX||{q:"",cat:"",open:{}}; S.FX.cat=d.fxCat; render(); return; }
+  if(d.fxCat!==undefined){ S.FX=S.FX||{q:"",cat:"",sel:""}; S.FX.cat=d.fxCat; render(); return; }
+  if(d.fxSel!==undefined){ S.FX=S.FX||{q:"",cat:"",sel:""}; S.FX.sel=d.fxSel; S.ie=null; render(); window.scrollTo({top:0,behavior:"smooth"}); return; }
   if(d.focusSearch!==undefined){ const q=$("#q"); if(q){ q.focus(); q.scrollIntoView({block:"center"}); } return; }
   if(d.appIconRm!==undefined){ appCollect(); S.A.form.icon=""; render(); return; }
   if(d.appIconApk!==undefined){ flash("เลือกไฟล์ APK อีกครั้งในช่อง Android เพื่อดึงไอคอน (ไฟล์เดิมบน Drive ไม่ถูกโหลดกลับมา)"); return; }
