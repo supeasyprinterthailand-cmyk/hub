@@ -463,6 +463,31 @@ mark.fx{background:var(--amber-soft);color:var(--amber);border-radius:3px;paddin
 .tool:hover .k{color:var(--accent)}
 @media (prefers-reduced-motion:reduce){.bgfx .blob,.iconwall .tile{animation:none}.cat svg{transition:none}}
 @media (max-width:640px){.hero2{padding-top:32px}.hero2 h1{font-size:34px}.cat svg{height:84px}.bgfx .grid{background-size:40px 40px}}
+
+/* warranty page: accordion + model nav */
+.wr-nav{position:sticky;top:calc(56px + env(safe-area-inset-top,0px));z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);padding:10px 0 8px;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.wr-q{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper);margin-bottom:8px}
+.wr-chips{display:grid;gap:6px;max-height:160px;overflow:auto}
+.wr-chipgrp{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.wr-chipgrp .chip{padding:4px 10px;font-size:12.5px;border:1px solid var(--line);border-radius:999px;background:var(--paper);cursor:pointer}
+.wr-chipgrp .chip.cat{font-weight:700;background:var(--paper-2)}
+.wr-chipgrp .chip.own{border-color:var(--accent)}
+.wr-chipgrp .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+details.wr{margin-bottom:12px;border:1px solid var(--line);border-radius:var(--r);background:var(--paper);scroll-margin-top:230px}
+details.wr>summary{list-style:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;cursor:pointer;font-size:16px}
+details.wr>summary::-webkit-details-marker{display:none}
+details.wr>summary .soft{font-weight:400;font-size:12.5px}
+details.wr>summary .wr-arrow{margin-left:auto;font-size:20px;transition:transform .2s;color:var(--muted)}
+details.wr[open]>summary .wr-arrow{transform:rotate(90deg)}
+details.wr[open]>summary{border-bottom:1px solid var(--line)}
+details.wr>summary img,.wr-ill{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--paper-2);display:inline-flex;align-items:center;justify-content:center;overflow:hidden;flex:none}
+.wr-ill svg{width:100%;height:100%}
+.wr-body{padding:12px 14px}
+details.wr.sub{margin:10px 0 0;border-left:3px solid var(--accent)}
+details.wr.sub>summary{font-size:15px}
+.wr-shared{margin:10px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.wr-shared .chip{padding:3px 9px;font-size:12px;border:1px solid var(--line);border-radius:999px;background:var(--paper-2)}
+@media (max-width:640px){.wr-chips{max-height:120px}details.wr{scroll-margin-top:200px}}
 </style>
 </head><body>
 <div id="app"></div>
@@ -913,18 +938,31 @@ async function dsApply(){ dsCollect(); const D=S.DS; const sel=D.groups.filter(g
 function viewWarranty(){
   const cats=[...S.cats].sort((a,b)=>(a.order??99)-(b.order??99));
   const nProd=S.prods.filter(p=>(p.warranty||[]).length).length;
+  S.WR=S.WR||{open:null,q:""}; if(!S.WR.open&&cats.length) S.WR.open="cat-"+cats[0].id;
+  const q=(S.WR.q||"").trim().toLowerCase();
+  const hit=p=>!q||p.name.toLowerCase().includes(q)||(p.id||"").toLowerCase().includes(q);
+  const thumb=p=>(p.images||[]).length?`<img src="${esc(imgUrl(p.images[0]))}" alt="" loading="lazy">`:`<span class="wr-ill">${ill((catById(p.cat)||{}).icon||p.cat)}</span>`;
+  const nav=`<div class="wr-nav"><input type="search" class="wr-q" placeholder="🔍 พิมพ์ชื่อรุ่น เช่น ES-9900, BC802" value="${esc(S.WR.q||"")}" data-wr-q>
+    <div class="wr-chips">${cats.map(c=>{ const ps=prodsOf(c.id).filter(hit); if(q&&!ps.length) return ""; return `<div class="wr-chipgrp"><button class="chip cat ${S.WR.open==="cat-"+c.id?"on":""}" data-wr-open="cat-${esc(c.id)}">${esc(c.name)}</button>${ps.map(p=>`<button class="chip ${(p.warranty||[]).length?"own":""} ${S.WR.open===((p.warranty||[]).length?"prod-"+p.id:"cat-"+c.id)&&q?"on":""}" data-wr-open="${(p.warranty||[]).length?"prod-"+esc(p.id):"cat-"+esc(c.id)}" title="${(p.warranty||[]).length?"มีเงื่อนไขเฉพาะรุ่น":"ใช้เงื่อนไขร่วมของหมวด "+esc(c.name)}">${esc(p.name)}</button>`).join("")}</div>`; }).join("")||`<div class="soft">ไม่พบรุ่นที่ค้นหา</div>`}</div></div>`;
   return `<div class="wrap"><button class="back" data-go="">‹ หน้าแรก</button>
-   <div class="section-h"><h2>ประกัน & เงื่อนไขหลังการขาย</h2><span class="soft">เงื่อนไขร่วมของแต่ละหมวด · รุ่นที่มีเงื่อนไขเฉพาะ ${nProd} รุ่น</span></div>
-   ${S.admin?`<div class="hint" style="margin-bottom:12px">กด ✎ ที่บล็อกไหนก็ได้ แก้เสร็จเปิด "นำส่วนนี้ไปใส่รุ่นอื่นด้วย" แล้วติ๊กหมวด/รุ่นที่ต้องการ จะอัปเดตทีเดียวทั้งหมด (เลือกได้ว่าแทนที่ หรือเพิ่มต่อท้ายของเดิม)</div>${docSyncBox()}`:""}
-   ${cats.map(c=>{ const ps=prodsOf(c.id); const own=ps.filter(p=>(p.warranty||[]).length); const shared=ps.length-own.length;
-     return `<div class="media-group" style="margin-bottom:18px"><h3 style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${esc(c.name)} <span class="soft" style="font-weight:400;font-size:13px">· เงื่อนไขร่วมใช้กับ ${shared} รุ่น${own.length?` · เงื่อนไขเฉพาะ ${own.length} รุ่น`:""}</span></h3>
-       ${edWrap("cat",c.id,"warranty",(c.warranty||[]).length?`<div class="secs">${(c.warranty||[]).map(sec=>secBlock(sec)).join("")}</div>`:`<div class="empty">หมวดนี้ยังไม่มีเงื่อนไขร่วม${S.admin?" — กด ✎ เพื่อเพิ่ม":""}</div>`)}
-       ${own.map(p=>`<div style="margin:10px 0 0 12px;border-left:3px solid var(--line);padding-left:12px"><div style="font-weight:700;margin-bottom:4px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mono">${esc(p.name)}</span><span class="soft" style="font-weight:400;font-size:12.5px">เงื่อนไขเฉพาะรุ่น (ใช้แทนของหมวด)</span><button class="btn small" data-go="p-${esc(p.id)}">ดูรุ่น ›</button></div>
-         ${edWrap("prod",p.id,"warranty",`<div class="secs">${(p.warranty||[]).map(sec=>secBlock(sec)).join("")}</div>`)}</div>`).join("")}
-       ${S.admin&&shared?`<details style="margin:8px 0 0 12px;font-size:13px"><summary class="soft">รุ่นที่ใช้เงื่อนไขร่วมของหมวด (${shared}) — กดเพื่อเพิ่มเงื่อนไขเฉพาะรุ่น</summary><div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:6px">${ps.filter(p=>!(p.warranty||[]).length).map(p=>`<button class="btn small" data-ie="prod|${esc(p.id)}|warranty">✎ ${esc(p.name)}</button>`).join("")}</div></details>`:""}
-     </div>`; }).join("")}
+   <div class="section-h"><h2>ประกัน & เงื่อนไขหลังการขาย</h2><span class="soft">กดชื่อหมวด/รุ่น เพื่อเลื่อนไปดู (อันอื่นจะพับเก็บให้) · รุ่นที่มีเงื่อนไขเฉพาะ ${nProd} รุ่น</span></div>
+   ${nav}
+   ${S.admin?`<div class="hint" style="margin-bottom:12px">กด ✎ ที่บล็อกไหนก็ได้ — ในหัวข้อมีปุ่ม "⬆ เพิ่มรูปประกอบ" ใส่รูปได้หลายรูป · เปิด "นำส่วนนี้ไปใส่รุ่นอื่นด้วย" แล้วติ๊กหมวด/รุ่นที่ต้องการ จะอัปเดตทีเดียวทั้งหมด</div>${docSyncBox()}`:""}
+   ${cats.map(c=>{ const ps=prodsOf(c.id); const own=ps.filter(p=>(p.warranty||[]).length); const shared=ps.length-own.length; const cid="cat-"+c.id; const op=S.WR.open===cid||own.some(p=>S.WR.open==="prod-"+p.id);
+     return `<details class="wr media-group" id="wr-${esc(cid)}" data-wr="${esc(cid)}" ${op?"open":""}><summary><span class="wr-ill">${ill(c.icon||c.id)}</span><b>${esc(c.name)}</b><span class="soft">เงื่อนไขร่วมใช้กับ ${shared} รุ่น${own.length?` · เงื่อนไขเฉพาะ ${own.length} รุ่น`:""}</span><span class="wr-arrow">›</span></summary><div class="wr-body">
+       ${edWrap("cat",c.id,"warranty",(c.warranty||[]).length?`<div class="secs">${(c.warranty||[]).map(sec=>warBlock(sec,/ไม่รวม|ยกเว้น|สิ้นสุด/.test(sec.title)?"warn":"")).join("")}</div>`:`<div class="empty">หมวดนี้ยังไม่มีเงื่อนไขร่วม${S.admin?" — กด ✎ เพื่อเพิ่ม":""}</div>`)}
+       ${shared?`<div class="wr-shared"><span class="soft">รุ่นที่ใช้เงื่อนไขร่วมนี้:</span> ${ps.filter(p=>!(p.warranty||[]).length).map(p=>`<button class="chip" data-go="p-${esc(p.id)}">${esc(p.name)}</button>${S.admin?`<button class="btn small" data-ie="prod|${esc(p.id)}|warranty" title="เพิ่มเงื่อนไขเฉพาะรุ่น">✎</button>`:""}`).join(" ")}</div>`:""}
+       ${own.map(p=>{ const pid="prod-"+p.id; return `<details class="wr sub" id="wr-${esc(pid)}" data-wr="${esc(pid)}" ${S.WR.open===pid?"open":""}><summary>${thumb(p)}<b class="mono">${esc(p.name)}</b><span class="soft">เงื่อนไขเฉพาะรุ่น (ใช้แทนของหมวด)</span><button class="btn small" data-go="p-${esc(p.id)}">ดูรุ่น ›</button><span class="wr-arrow">›</span></summary><div class="wr-body">
+         ${edWrap("prod",p.id,"warranty",`<div class="secs">${(p.warranty||[]).map(sec=>warBlock(sec,/ไม่รวม|ยกเว้น|สิ้นสุด/.test(sec.title)?"warn":"")).join("")}</div>`)}</div></details>`; }).join("")}
+     </div></details>`; }).join("")}
    <div style="height:40px"></div></div>`;
 }
+function wrOpen(id){ S.WR=S.WR||{}; S.WR.open=id; document.querySelectorAll("details.wr").forEach(d=>{ const k=d.dataset.wr; d.open = k===id || (id.startsWith("prod-") && !k.startsWith("prod-") && !!d.querySelector(`[data-wr="${CSS.escape(id)}"]`)); });
+  document.querySelectorAll("[data-wr-open]").forEach(b=>b.classList.toggle("on",b.dataset.wrOpen===id));
+  const el=document.getElementById("wr-"+id); if(el) setTimeout(()=>el.scrollIntoView({behavior:"smooth",block:"start"}),30); }
+document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-wr-open]"); if(!t) return; wrOpen(t.dataset.wrOpen); });
+document.addEventListener("input",ev=>{ const t=ev.target.closest("[data-wr-q]"); if(!t) return; S.WR=S.WR||{}; S.WR.q=t.value; const nav=document.querySelector(".wr-nav"); if(!nav) return; const tmp=document.createElement("div"); tmp.innerHTML=viewWarranty(); nav.querySelector(".wr-chips").innerHTML=tmp.querySelector(".wr-chips").innerHTML; });
+document.addEventListener("toggle",ev=>{ const d=ev.target; if(!(d instanceof HTMLElement)||!d.matches("details.wr")) return; if(d.open){ S.WR=S.WR||{}; S.WR.open=d.dataset.wr; } },true);
 
 function viewProd(id){
   const p=prodById(id);
