@@ -488,6 +488,16 @@ details.wr.sub>summary{font-size:15px}
 .wr-shared{margin:10px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
 .wr-shared .chip{padding:3px 9px;font-size:12px;border:1px solid var(--line);border-radius:999px;background:var(--paper-2)}
 @media (max-width:640px){.wr-chips{max-height:120px}details.wr{scroll-margin-top:200px}}
+
+/* ลิงก์รูป/คลิปในรายการ */
+.rl-img{display:block;margin:6px 0}.rl-img img{max-width:min(100%,520px);max-height:360px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;display:block}
+.rl-vid{display:block;margin:6px 0}.rl-vid video{max-width:min(100%,560px);border-radius:8px;border:1px solid var(--line);background:#000;display:block}
+.rl-yt{position:relative;display:block;width:min(100%,420px);margin:6px 0;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#000;text-decoration:none}
+.rl-yt img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover;opacity:.9}
+.rl-yt .rl-play{position:absolute;inset:0;display:grid;place-items:center;font-size:40px;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.rl-yt .rl-cap{position:absolute;left:0;right:0;bottom:0;padding:6px 10px;font-size:12.5px;color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.7))}
+.rl-yt:hover .rl-play{transform:scale(1.15)}
+.rl-btn{margin:4px 0;display:inline-flex}
 </style>
 </head><body>
 <div id="app"></div>
@@ -797,7 +807,18 @@ function secBlock(s,cls=""){
   return `<div class="sec ${cls}">${s.title?`<h3>${esc(s.title)}</h3>`:""}<ul>${(s.lines||[]).map(l=>`<li>${linkify(l)}</li>`).join("")}</ul>${secImgs(s)}</div>`;
 }
 function linkify(t){
-  return esc(t).replace(/(https?:\/\/[^\s<]+)/g,u=>`<a href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="${u}">${u.length>48?u.slice(0,46)+"…":u}</a>`);
+  // ลิงก์ในบรรทัด: รูป → แสดงรูปเลย (กดขยาย) · YouTube → การ์ดคลิปมีปุ่มเล่น · ไฟล์ Drive/PDF/วิดีโอ → ปุ่มกดดูในหน้า · อื่น ๆ → ลิงก์ปกติ
+  return esc(t).replace(/(https?:\/\/[^\s<]+)/g,u=>{ const raw=u.replace(/&amp;/g,"&"); return richLink(raw)||`<a href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="${u}">${u.length>48?u.slice(0,46)+"…":u}</a>`; });
+}
+function richLink(url){
+  const u=esc(url); let m;
+  if(/\.(jpe?g|png|gif|webp|bmp|svg)(\?|#|$)/i.test(url)||/lh\d\.googleusercontent\.com|drive\.google\.com\/thumbnail/.test(url)) return `<span class="rl-img"><img src="${u}" alt="" loading="lazy" data-zoom="${u}" data-label="รูปประกอบ"></span>`;
+  if(/\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url)) return `<span class="rl-vid"><video src="${u}" controls preload="metadata" playsinline></video></span>`;
+  if((m=url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/))([\w-]{6,})/))) return `<a class="rl-yt" href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="คลิป YouTube"><img src="https://img.youtube.com/vi/${m[1]}/hqdefault.jpg" alt="" loading="lazy"><span class="rl-play">▶</span><span class="rl-cap">กดดูคลิป YouTube</span></a>`;
+  if(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=)/.test(url)) return `<a class="btn small rl-btn" href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="ไฟล์จาก Google Drive">📎 เปิดไฟล์ / คลิป (Drive)</a>`;
+  if(/\.pdf(\?|#|$)/i.test(url)) return `<a class="btn small rl-btn" href="${u}" target="_blank" rel="noopener" data-view="${u}" data-label="PDF">📄 เปิด PDF</a>`;
+  if(/(tiktok\.com|facebook\.com|fb\.watch|vimeo\.com)\//.test(url)) return `<a class="btn small rl-btn" href="${u}" target="_blank" rel="noopener">▶ ดูคลิป (${esc(hostOf(url))})</a>`;
+  return "";
 }
 
 /* ---------- ร่างจากเว็บ: ใส่ลิงก์หน้าสินค้า → ดึงมาเป็นบล็อก → เลือกส่วน/รุ่นที่จะใส่ ---------- */
@@ -1243,7 +1264,7 @@ function ieEditor(){
   else if(t==="kv") body=draft.map(([k,v],i)=>`<div class="kv"><input name="k" placeholder="หัวข้อ" value="${esc(k)}"><input name="v" placeholder="ค่า" value="${esc(v)}">${rm(i)}</div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มแถว</button>`;
   else if(t==="variants") body=draft.map((x,i)=>`<div class="kv"><input name="k" placeholder="รหัสรุ่น" value="${esc(x.code)}"><input name="v" placeholder="คำอธิบาย" value="${esc(x.note)}">${rm(i)}</div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มรุ่นย่อย</button>`;
   else if(t==="lines") body=`<label>บรรทัดละ 1 ข้อ<textarea name="lines" style="min-height:120px">${esc((draft||[]).join("\n"))}</textarea></label>`;
-  else if(t==="secs") body=draft.map((sec,i)=>`<div class="ies"><div style="display:flex;gap:6px"><input name="t" placeholder="หัวข้อ (เช่น อาการ / ชื่อแพ็กเกจ)" value="${esc(sec.title)}">${rm(i)}</div><textarea name="l" placeholder="รายการ บรรทัดละ 1 ข้อ">${esc((sec.lines||[]).join("\n"))}</textarea>
+  else if(t==="secs") body=draft.map((sec,i)=>`<div class="ies"><div style="display:flex;gap:6px"><input name="t" placeholder="หัวข้อ (เช่น อาการ / ชื่อแพ็กเกจ)" value="${esc(sec.title)}">${rm(i)}</div><textarea name="l" placeholder="รายการ บรรทัดละ 1 ข้อ · วางลิงก์รูป (.jpg/.png) หรือลิงก์ YouTube / Google Drive / .mp4 ได้เลย จะแสดงรูป-ปุ่มเล่นคลิปให้อัตโนมัติ">${esc((sec.lines||[]).join("\n"))}</textarea>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><div class="simgs">${(sec.imgs||[]).map((im,j)=>`<figure><img src="${esc(imgUrl(im))}" alt=""><button type="button" data-ie-imgrm="${i}|${j}" aria-label="เอารูปออก">×</button></figure>`).join("")}</div>${assets?`<label class="btn small" style="display:inline-flex;cursor:pointer">${S.ie.uploading===i?"กำลังอัปโหลด…":"⬆ เพิ่มรูปประกอบ"}<input type="file" accept="image/*" multiple hidden data-ie-secimg="${i}"></label>`:""}</div></div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มหัวข้อ</button>`;
   else if(t==="media") body=draft.map((x,i)=>`<div class="kv3"><input name="g" placeholder="กลุ่ม เช่น ติดตั้งไดรเวอร์" value="${esc(x.group)}"><input name="n" placeholder="ชื่อ" value="${esc(x.label)}"><input name="u" placeholder="https://…" value="${esc(x.url)}">${rm(i)}</div>`).join("")+`<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn small" data-ie-add>+ เพิ่มลิงก์</button>${assets?`<label class="btn small" for="ie-up" style="cursor:pointer">⬆ อัปโหลดไฟล์ PDF / คู่มือ</label><input id="ie-up" type="file" accept="application/pdf,image/*" multiple hidden>`:""}</div>`;
   else if(t==="leds") body=draft.map((x,i)=>`<div class="kv3"><select name="c">${LEDC.map(c=>`<option ${x.color===c?"selected":""}>${c}</option>`).join("")}</select><input name="n" placeholder="ชื่อไฟ เช่น แดงกระพริบ" value="${esc(x.name)}"><input name="f" placeholder="วิธีแก้" value="${esc(x.fix)}">${rm(i)}</div>`).join("")+`<button type="button" class="btn small" data-ie-add>+ เพิ่มไฟ</button>`;
