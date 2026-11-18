@@ -3143,7 +3143,7 @@ function appCollect(){
   ["name","short","version","date","notes","desc","order","color"].forEach(k=>{ const x=v(k); if(x!==undefined) f[k]=x; }); const iu=v("img-url"); if(iu!==undefined) f._iu=iu; const aid=v("appid"); if(aid!==undefined) f.id=aid;
   const st=root.querySelector("[name=status]"); if(st) f.status=st.value||"1";
   const nl=root.querySelector("[name=notifyLine]"); if(nl) f.notifyLine=nl.checked;
-  Object.keys(PLAT).forEach(p=>{ const e=root.querySelector(`[name="link-${p}"]`); if(e){ const u=e.value.trim(); if(!(f[p]&&f[p].id)) f[p]=u?{url:u,name:(f[p]&&f[p].name)||""}:null; } });
+  Object.keys(PLAT).forEach(p=>{ const e=root.querySelector(`[name="link-${p}"]`); if(e){ const u=e.value.trim(); if(!(f[p]&&f[p].id)) f[p]=u?{url:u,name:(f[p]&&f[p].name)||(()=>{ try{ const n=decodeURIComponent(new URL(u).pathname.split("/").pop()||""); return /\.[a-z0-9]{2,5}$/i.test(n)?n:""; }catch(e){ return ""; } })()}:null; } });
   const ml=root.querySelector("[name=manual-label]"), mu=root.querySelector("[name=manual-url]"); if(ml) f._ml=ml.value; if(mu) f._mu=mu.value;
   const cl=root.querySelector("[name=clip-label]"), cu=root.querySelector("[name=clip-url]"); if(cl) f._cl=cl.value; if(cu) f._cu=cu.value;
 }
